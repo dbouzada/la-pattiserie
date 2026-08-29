@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
 
 interface Producto {
     id: number
@@ -33,9 +32,10 @@ export default function NuevaVenta() {
     const [busqueda, setBusqueda] = useState('')
     const [carrito, setCarrito] = useState<ItemCarrito[]>([])
     const [medio, setMedio] = useState('efectivo')
+    const [descuentoTipo, setDescuentoTipo] = useState<'monto' | 'porcentaje'>('monto')
+    const [descuentoValor, setDescuentoValor] = useState<number>(0)
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
-    const router = useRouter()
 
     useEffect(() => {
         supabase.from('productos').select('*').eq('activo', true).order('nombre')
@@ -72,7 +72,13 @@ export default function NuevaVenta() {
         ))
     }
 
-    const total = carrito.reduce((acc, i) => acc + i.subtotal, 0)
+    const subtotalBruto = carrito.reduce((acc, i) => acc + i.subtotal, 0)
+
+    const montoDescuento = descuentoTipo === 'porcentaje'
+        ? Math.round(subtotalBruto * (descuentoValor / 100))
+        : descuentoValor
+
+    const total = Math.max(0, subtotalBruto - montoDescuento)
 
     const fmt = (n: number) =>
         new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
@@ -83,7 +89,13 @@ export default function NuevaVenta() {
 
         const { data: venta, error } = await supabase
             .from('ventas')
-            .insert({ medio_pago: medio, total })
+            .insert({
+                medio_pago: medio,
+                total,
+                descuento: montoDescuento,
+                descuento_tipo: descuentoTipo,
+                total_antes_descuento: subtotalBruto,
+            })
             .select()
             .single()
 
@@ -109,6 +121,7 @@ export default function NuevaVenta() {
 
         setCarrito([])
         setMedio('efectivo')
+        setDescuentoValor(0)
         setGuardando(false)
         setExito(true)
         setTimeout(() => setExito(false), 3000)
@@ -119,26 +132,18 @@ export default function NuevaVenta() {
     return (
         <div style={{ maxWidth: '560px', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* Header */}
             <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>
-                    Nueva venta
-                </h1>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Nueva venta</h1>
                 <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
                     {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
             </div>
 
-            {/* Éxito */}
             {exito && (
                 <div style={{
-                    background: '#4ADE8015',
-                    border: '1px solid #4ADE8030',
-                    color: '#4ADE80',
-                    padding: '0.875rem 1rem',
-                    borderRadius: '12px',
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
+                    background: '#4ADE8015', border: '1px solid #4ADE8030',
+                    color: '#4ADE80', padding: '0.875rem 1rem',
+                    borderRadius: '12px', fontSize: '0.85rem', fontWeight: 500,
                 }}>
                     ✓ Venta registrada correctamente
                 </div>
@@ -153,47 +158,31 @@ export default function NuevaVenta() {
                     onChange={e => setBusqueda(e.target.value)}
                     autoFocus
                     style={{
-                        width: '100%',
-                        background: '#0F0F18',
-                        border: '1px solid #1E1E2E',
-                        borderRadius: '12px',
-                        padding: '0.875rem 1rem',
-                        color: '#E8E6E0',
-                        fontSize: '0.95rem',
-                        outline: 'none',
-                        boxSizing: 'border-box',
+                        width: '100%', background: '#0F0F18',
+                        border: '1px solid #1E1E2E', borderRadius: '12px',
+                        padding: '0.875rem 1rem', color: '#E8E6E0',
+                        fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box',
                     }}
                     onFocus={e => e.target.style.borderColor = '#F59E0B50'}
                     onBlur={e => e.target.style.borderColor = '#1E1E2E'}
                 />
                 {busqueda && filtrados.length > 0 && (
                     <div style={{
-                        position: 'absolute',
-                        zIndex: 10,
-                        width: '100%',
-                        marginTop: '0.5rem',
-                        background: '#0F0F18',
-                        border: '1px solid #1E1E2E',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        boxShadow: '0 20px 40px #00000050',
+                        position: 'absolute', zIndex: 10, width: '100%',
+                        marginTop: '0.5rem', background: '#0F0F18',
+                        border: '1px solid #1E1E2E', borderRadius: '12px',
+                        overflow: 'hidden', boxShadow: '0 20px 40px #00000050',
                     }}>
                         {filtrados.slice(0, 6).map(p => (
                             <button
                                 key={p.id}
                                 onClick={() => agregarProducto(p)}
                                 style={{
-                                    width: '100%',
-                                    textAlign: 'left',
-                                    padding: '0.75rem 1rem',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    borderBottom: '1px solid #1E1E2E',
-                                    cursor: 'pointer',
-                                    color: '#E8E6E0',
+                                    width: '100%', textAlign: 'left',
+                                    padding: '0.75rem 1rem', display: 'flex',
+                                    justifyContent: 'space-between', alignItems: 'center',
+                                    background: 'transparent', border: 'none',
+                                    borderBottom: '1px solid #1E1E2E', cursor: 'pointer', color: '#E8E6E0',
                                 }}
                                 onMouseEnter={e => (e.currentTarget.style.background = '#16161F')}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -209,16 +198,12 @@ export default function NuevaVenta() {
             {/* Carrito */}
             {carrito.length > 0 && (
                 <div style={{
-                    background: '#0F0F18',
-                    border: '1px solid #1E1E2E',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
+                    background: '#0F0F18', border: '1px solid #1E1E2E',
+                    borderRadius: '16px', overflow: 'hidden',
                 }}>
                     {carrito.map((item, idx) => (
                         <div key={item.producto.id} style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '1rem',
+                            display: 'flex', alignItems: 'center', gap: '1rem',
                             padding: '0.875rem 1rem',
                             borderBottom: idx < carrito.length - 1 ? '1px solid #1E1E2E' : 'none',
                         }}>
@@ -256,17 +241,77 @@ export default function NuevaVenta() {
                         </div>
                     ))}
 
+                    {/* Descuento */}
+                    <div style={{
+                        padding: '0.875rem 1rem',
+                        borderTop: '1px solid #1E1E2E',
+                        background: '#16161F',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                    }}>
+                        <span style={{ fontSize: '0.8rem', color: '#3A3A4A', whiteSpace: 'nowrap' }}>Descuento</span>
+                        <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #1E1E2E' }}>
+                            {(['monto', 'porcentaje'] as const).map(t => (
+                                <button
+                                    key={t}
+                                    onClick={() => { setDescuentoTipo(t); setDescuentoValor(0) }}
+                                    style={{
+                                        padding: '0.3rem 0.75rem',
+                                        fontSize: '0.75rem',
+                                        background: descuentoTipo === t ? '#F59E0B' : 'transparent',
+                                        color: descuentoTipo === t ? '#0A0A0F' : '#3A3A4A',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontWeight: descuentoTipo === t ? 600 : 400,
+                                    }}
+                                >
+                                    {t === 'monto' ? '$' : '%'}
+                                </button>
+                            ))}
+                        </div>
+                        <input
+                            type="number"
+                            value={descuentoValor || ''}
+                            onChange={e => setDescuentoValor(Number(e.target.value))}
+                            placeholder={descuentoTipo === 'porcentaje' ? '0%' : '$ 0'}
+                            min={0}
+                            max={descuentoTipo === 'porcentaje' ? 100 : subtotalBruto}
+                            style={{
+                                flex: 1,
+                                background: 'transparent',
+                                border: '1px solid #1E1E2E',
+                                borderRadius: '8px',
+                                padding: '0.375rem 0.75rem',
+                                color: montoDescuento > 0 ? '#F87171' : '#E8E6E0',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                textAlign: 'right',
+                            }}
+                        />
+                        {montoDescuento > 0 && (
+                            <span style={{ fontSize: '0.8rem', color: '#F87171', whiteSpace: 'nowrap' }}>
+                                −{fmt(montoDescuento)}
+                            </span>
+                        )}
+                    </div>
+
                     {/* Total */}
                     <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '1rem',
-                        background: '#16161F',
-                        borderTop: '1px solid #1E1E2E',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '1rem', background: '#16161F', borderTop: '1px solid #1E1E2E',
                     }}>
-                        <span style={{ fontSize: '0.8rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</span>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 700, color: '#4ADE80', letterSpacing: '-0.03em' }}>{fmt(total)}</span>
+                        <div>
+                            <span style={{ fontSize: '0.8rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</span>
+                            {montoDescuento > 0 && (
+                                <p style={{ fontSize: '0.75rem', color: '#3A3A4A', textDecoration: 'line-through', marginTop: '0.1rem' }}>
+                                    {fmt(subtotalBruto)}
+                                </p>
+                            )}
+                        </div>
+                        <span style={{ fontSize: '1.75rem', fontWeight: 700, color: '#4ADE80', letterSpacing: '-0.03em' }}>
+                            {fmt(total)}
+                        </span>
                     </div>
                 </div>
             )}
@@ -282,10 +327,8 @@ export default function NuevaVenta() {
                             key={m.key}
                             onClick={() => setMedio(m.key)}
                             style={{
-                                padding: '0.5rem 1rem',
-                                borderRadius: '10px',
-                                fontSize: '0.8rem',
-                                fontWeight: medio === m.key ? 600 : 400,
+                                padding: '0.5rem 1rem', borderRadius: '10px',
+                                fontSize: '0.8rem', fontWeight: medio === m.key ? 600 : 400,
                                 cursor: 'pointer',
                                 border: `1px solid ${medio === m.key ? m.color + '60' : '#1E1E2E'}`,
                                 background: medio === m.key ? m.color + '20' : '#0F0F18',
@@ -304,20 +347,18 @@ export default function NuevaVenta() {
                 onClick={confirmar}
                 disabled={carrito.length === 0 || guardando}
                 style={{
-                    width: '100%',
-                    padding: '1rem',
+                    width: '100%', padding: '1rem',
                     background: carrito.length === 0 || guardando ? '#16161F' : '#F59E0B',
                     color: carrito.length === 0 || guardando ? '#2A2A35' : '#0A0A0F',
-                    border: 'none',
-                    borderRadius: '14px',
-                    fontSize: '1rem',
-                    fontWeight: 700,
+                    border: 'none', borderRadius: '14px',
+                    fontSize: '1rem', fontWeight: 700,
                     cursor: carrito.length === 0 || guardando ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s',
-                    letterSpacing: '-0.01em',
+                    transition: 'all 0.15s', letterSpacing: '-0.01em',
                 }}
             >
-                {guardando ? 'Guardando...' : carrito.length === 0 ? 'Agregá productos' : `Confirmar · ${fmt(total)} · ${medioActual.label}`}
+                {guardando ? 'Guardando...' : carrito.length === 0
+                    ? 'Agregá productos'
+                    : `Confirmar · ${fmt(total)} · ${medioActual.label}`}
             </button>
         </div>
     )

@@ -9,9 +9,13 @@ interface Venta {
     fecha: string
     medio_pago: string
     total: number
+    total_antes_descuento: number
+    descuento: number
+    anulada: boolean
     created_at: string
     venta_items: {
         id: number
+        producto_id: number
         cantidad: number
         gramos: number
         subtotal: number
@@ -37,7 +41,7 @@ export default function Ventas() {
         setLoading(true)
         const { data } = await supabase
             .from('ventas')
-            .select(`*, venta_items(id, cantidad, gramos, subtotal, productos(nombre))`)
+            .select(`*, venta_items(id, producto_id, cantidad, gramos, subtotal, productos(nombre))`)
             .eq('fecha', fecha)
             .order('created_at', { ascending: false })
         setVentas(data || [])
@@ -46,10 +50,32 @@ export default function Ventas() {
 
     useEffect(() => { cargar() }, [fecha])
 
+    const anular = async (id: number) => {
+        if (!confirm('¿Anular esta venta? Se revertirá el stock.')) return
+
+        const venta = ventas.find(v => v.id === id)
+        if (!venta) return
+
+        await supabase.from('ventas').update({
+            anulada: true,
+            anulada_at: new Date().toISOString(),
+        }).eq('id', id)
+
+        for (const item of venta.venta_items) {
+            await supabase.rpc('decrementar_stock', {
+                p_id: item.producto_id,
+                p_cantidad: -(item.cantidad || 1),
+            })
+        }
+
+        await cargar()
+    }
+
     const fmt = (n: number) =>
         new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 
-    const total = ventas.reduce((a, v) => a + v.total, 0)
+    const ventasActivas = ventas.filter(v => !v.anulada)
+    const total = ventasActivas.reduce((a, v) => a + v.total, 0)
 
     const hora = (str: string) =>
         new Date(str).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
@@ -61,7 +87,9 @@ export default function Ventas() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Ventas</h1>
-                    <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>{ventas.length} ticket{ventas.length !== 1 ? 's' : ''} · {fmt(total)}</p>
+                    <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+                        {ventasActivas.length} ticket{ventasActivas.length !== 1 ? 's' : ''} · {fmt(total)}
+                    </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                     <input
@@ -93,10 +121,11 @@ export default function Ventas() {
             </div>
 
             {/* KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 {[
                     { label: 'Total del día', value: fmt(total), color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
-                    { label: 'Tickets', value: ventas.length, color: '#60A5FA', bg: '#60A5FA10', border: '#60A5FA25' },
+                    { label: 'Tickets', value: ventasActivas.length, color: '#60A5FA', bg: '#60A5FA10', border: '#60A5FA25' },
+                    { label: 'Anuladas', value: ventas.filter(v => v.anulada).length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
                 ].map(k => (
                     <div key={k.label} style={{
                         background: k.bg,
@@ -133,9 +162,10 @@ export default function Ventas() {
                     return (
                         <div key={v.id} style={{
                             background: '#0F0F18',
-                            border: '1px solid #1E1E2E',
+                            border: `1px solid ${v.anulada ? '#F8717120' : '#1E1E2E'}`,
                             borderRadius: '14px',
                             overflow: 'hidden',
+                            opacity: v.anulada ? 0.5 : 1,
                         }}>
                             <button
                                 onClick={() => setExpandida(expandida === v.id ? null : v.id)}
@@ -167,11 +197,35 @@ export default function Ventas() {
                                     }}>
                                         {m.label}
                                     </span>
+                                    {v.anulada && (
+                                        <span style={{
+                                            fontSize: '0.72rem',
+                                            padding: '0.2rem 0.6rem',
+                                            borderRadius: '6px',
+                                            background: '#F8717120',
+                                            color: '#F87171',
+                                            fontWeight: 500,
+                                        }}>
+                                            anulada
+                                        </span>
+                                    )}
+                                    {v.descuento > 0 && (
+                                        <span style={{
+                                            fontSize: '0.72rem',
+                                            padding: '0.2rem 0.6rem',
+                                            borderRadius: '6px',
+                                            background: '#A78BFA20',
+                                            color: '#A78BFA',
+                                            fontWeight: 500,
+                                        }}>
+                                            desc.
+                                        </span>
+                                    )}
                                     <span style={{ fontSize: '0.78rem', color: '#2A2A35' }}>
                                         {v.venta_items.length} item{v.venta_items.length !== 1 ? 's' : ''}
                                     </span>
                                 </div>
-                                <span style={{ fontSize: '1rem', fontWeight: 700, color: '#4ADE80', letterSpacing: '-0.02em' }}>
+                                <span style={{ fontSize: '1rem', fontWeight: 700, color: v.anulada ? '#F87171' : '#4ADE80', letterSpacing: '-0.02em' }}>
                                     {fmt(v.total)}
                                 </span>
                             </button>
@@ -192,6 +246,34 @@ export default function Ventas() {
                                             <span style={{ fontSize: '0.85rem', color: '#F59E0B', fontWeight: 500 }}>{fmt(item.subtotal)}</span>
                                         </div>
                                     ))}
+
+                                    {v.descuento > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #1E1E2E' }}>
+                                            <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>Descuento</span>
+                                            <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>−{fmt(v.descuento)}</span>
+                                        </div>
+                                    )}
+
+                                    {!v.anulada && (
+                                        <button
+                                            onClick={() => anular(v.id)}
+                                            style={{
+                                                marginTop: '0.5rem',
+                                                padding: '0.5rem 1rem',
+                                                background: 'transparent',
+                                                border: '1px solid #F8717130',
+                                                borderRadius: '8px',
+                                                color: '#F87171',
+                                                fontSize: '0.78rem',
+                                                cursor: 'pointer',
+                                                width: '100%',
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = '#F8717110'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            Anular venta
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
