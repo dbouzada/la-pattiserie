@@ -21,7 +21,7 @@ export default function Productos() {
     const [loading, setLoading] = useState(true)
     const [editando, setEditando] = useState<Producto | null>(null)
     const [guardando, setGuardando] = useState(false)
-    const [busqueda, setBusqueda] = useState(false)
+    const [busqueda, setBusqueda] = useState('')
 
     const cargar = async () => {
         const { data } = await supabase.from('productos').select('*').order('nombre')
@@ -53,11 +53,8 @@ export default function Productos() {
         (((p.precio_venta - p.costo_total) / p.precio_venta) * 100).toFixed(0)
 
     const filtrados = productos.filter(p =>
-        typeof busqueda === 'string'
-            ? p.nombre.toLowerCase().includes(busqueda.toLowerCase())
-            : true
+        p.nombre.toLowerCase().includes(busqueda.toLowerCase())
     )
-
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
             <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>

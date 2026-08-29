@@ -3,84 +3,45 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-interface Arqueo {
-    fecha: string
-    total_efectivo: number
-    total_tarjeta: number
-    total_transfer: number
-    total_mp: number
-    total_pedidosya: number
-    total_dia: number
-    notas: string
-}
-
 export default function Caja() {
-    const [arqueo, setArqueo] = useState<Arqueo | null>(null)
-    const [notas, setNotas] = useState('')
     const [loading, setLoading] = useState(true)
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
+    const [notas, setNotas] = useState('')
+    const [totales, setTotales] = useState({
+        efectivo: 0, tarjeta: 0, transferencia: 0, mercadopago: 0, pedidosya: 0,
+    })
 
     const hoy = new Date().toISOString().split('T')[0]
 
     const cargar = async () => {
-        // Traer arqueo existente
-        const { data: arqueoExistente } = await supabase
-            .from('arqueo_caja')
-            .select('*')
-            .eq('fecha', hoy)
-            .single()
-
-        // Traer totales desde ventas del día
         const { data: ventas } = await supabase
-            .from('ventas')
-            .select('medio_pago, total')
-            .eq('fecha', hoy)
+            .from('ventas').select('medio_pago, total').eq('fecha', hoy)
 
-        const totales = {
-            efectivo: 0,
-            tarjeta: 0,
-            transferencia: 0,
-            mercadopago: 0,
-            pedidosya: 0,
-        }
+        const { data: arqueo } = await supabase
+            .from('arqueo_caja').select('notas').eq('fecha', hoy).single()
 
+        const t = { efectivo: 0, tarjeta: 0, transferencia: 0, mercadopago: 0, pedidosya: 0 }
         ventas?.forEach(v => {
-            if (v.medio_pago === 'efectivo') totales.efectivo += v.total
-            if (v.medio_pago === 'tarjeta') totales.tarjeta += v.total
-            if (v.medio_pago === 'transferencia') totales.transferencia += v.total
-            if (v.medio_pago === 'mercadopago') totales.mercadopago += v.total
-            if (v.medio_pago === 'pedidosya') totales.pedidosya += v.total
+            if (v.medio_pago in t) (t as any)[v.medio_pago] += v.total
         })
 
-        const total_dia = Object.values(totales).reduce((a, b) => a + b, 0)
-
-        setArqueo({
-            fecha: hoy,
-            total_efectivo: totales.efectivo,
-            total_tarjeta: totales.tarjeta,
-            total_transfer: totales.transferencia,
-            total_mp: totales.mercadopago,
-            total_pedidosya: totales.pedidosya,
-            total_dia,
-            notas: arqueoExistente?.notas || '',
-        })
-        setNotas(arqueoExistente?.notas || '')
+        setTotales(t)
+        setNotas(arqueo?.notas || '')
         setLoading(false)
     }
 
     useEffect(() => { cargar() }, [])
 
     const guardar = async () => {
-        if (!arqueo) return
         setGuardando(true)
         await supabase.from('arqueo_caja').upsert({
             fecha: hoy,
-            total_efectivo: arqueo.total_efectivo,
-            total_tarjeta: arqueo.total_tarjeta,
-            total_transfer: arqueo.total_transfer,
-            total_mp: arqueo.total_mp,
-            total_pedidosya: arqueo.total_pedidosya,
+            total_efectivo: totales.efectivo,
+            total_tarjeta: totales.tarjeta,
+            total_transfer: totales.transferencia,
+            total_mp: totales.mercadopago,
+            total_pedidosya: totales.pedidosya,
             notas,
         }, { onConflict: 'fecha' })
         setExito(true)
@@ -89,67 +50,179 @@ export default function Caja() {
     }
 
     const fmt = (n: number) =>
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n)
+        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 
-    if (loading) return <p className="text-gray-400">Cargando...</p>
+    const total = Object.values(totales).reduce((a, b) => a + b, 0)
 
     const medios = [
-        { label: 'Efectivo', value: arqueo?.total_efectivo || 0, color: 'text-yellow-400' },
-        { label: 'Tarjeta', value: arqueo?.total_tarjeta || 0, color: 'text-blue-400' },
-        { label: 'Transferencia', value: arqueo?.total_transfer || 0, color: 'text-purple-400' },
-        { label: 'Mercado Pago', value: arqueo?.total_mp || 0, color: 'text-cyan-400' },
-        { label: 'Pedidos Ya', value: arqueo?.total_pedidosya || 0, color: 'text-orange-400' },
+        { label: 'Efectivo', value: totales.efectivo, color: '#FBBF24' },
+        { label: 'Tarjeta', value: totales.tarjeta, color: '#60A5FA' },
+        { label: 'Transferencia', value: totales.transferencia, color: '#A78BFA' },
+        { label: 'Mercado Pago', value: totales.mercadopago, color: '#34D399' },
+        { label: 'Pedidos Ya', value: totales.pedidosya, color: '#F87171' },
     ]
 
+    if (loading) return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+            <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>
+        </div>
+    )
+
     return (
-        <div className="max-w-lg mx-auto space-y-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold text-amber-400">Caja del día</h1>
-                <span className="text-gray-500 text-sm">{hoy}</span>
+        <div style={{ maxWidth: '560px', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* Header */}
+            <div>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Caja del día</h1>
+                <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+                    {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
             </div>
 
             {exito && (
-                <div className="bg-green-900 border border-green-700 text-green-300 px-4 py-3 rounded-lg">
-                    ✓ Arqueo guardado
+                <div style={{
+                    background: '#4ADE8015',
+                    border: '1px solid #4ADE8030',
+                    color: '#4ADE80',
+                    padding: '0.875rem 1rem',
+                    borderRadius: '12px',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                }}>
+                    ✓ Arqueo guardado correctamente
                 </div>
             )}
 
             {/* Total grande */}
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 text-center">
-                <p className="text-gray-500 text-sm mb-1">Total del día</p>
-                <p className="text-4xl font-semibold text-green-400">{fmt(arqueo?.total_dia || 0)}</p>
+            <div style={{
+                background: '#4ADE8010',
+                border: '1px solid #4ADE8025',
+                borderRadius: '20px',
+                padding: '2rem',
+                textAlign: 'center',
+            }}>
+                <p style={{ fontSize: '0.72rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+                    Total del día
+                </p>
+                <p style={{ fontSize: '3rem', fontWeight: 800, color: '#4ADE80', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                    {fmt(total)}
+                </p>
             </div>
 
-            {/* Desglose por medio */}
-            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+            {/* Desglose */}
+            <div style={{
+                background: '#0F0F18',
+                border: '1px solid #1E1E2E',
+                borderRadius: '16px',
+                overflow: 'hidden',
+            }}>
                 {medios.map((m, i) => (
-                    <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-gray-800 last:border-0">
-                        <span className="text-gray-400 text-sm">{m.label}</span>
-                        <span className={`font-medium ${m.value > 0 ? m.color : 'text-gray-700'}`}>
-                            {fmt(m.value)}
-                        </span>
+                    <div key={m.label} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '1rem 1.25rem',
+                        borderBottom: i < medios.length - 1 ? '1px solid #1E1E2E' : 'none',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{
+                                width: '8px', height: '8px',
+                                borderRadius: '50%',
+                                background: m.value > 0 ? m.color : '#2A2A35',
+                            }} />
+                            <span style={{ fontSize: '0.875rem', color: m.value > 0 ? '#E8E6E0' : '#3A3A4A' }}>
+                                {m.label}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            {total > 0 && m.value > 0 && (
+                                <span style={{ fontSize: '0.75rem', color: '#3A3A4A' }}>
+                                    {((m.value / total) * 100).toFixed(0)}%
+                                </span>
+                            )}
+                            <span style={{
+                                fontSize: '0.95rem',
+                                fontWeight: 600,
+                                color: m.value > 0 ? m.color : '#2A2A35',
+                            }}>
+                                {fmt(m.value)}
+                            </span>
+                        </div>
                     </div>
                 ))}
             </div>
 
+            {/* Barra visual */}
+            {total > 0 && (
+                <div style={{ height: '6px', borderRadius: '6px', overflow: 'hidden', display: 'flex', gap: '2px' }}>
+                    {medios.filter(m => m.value > 0).map(m => (
+                        <div key={m.label} style={{
+                            height: '100%',
+                            width: `${(m.value / total) * 100}%`,
+                            background: m.color,
+                            borderRadius: '6px',
+                            transition: 'width 0.5s ease',
+                        }} />
+                    ))}
+                </div>
+            )}
+
             {/* Notas */}
             <div>
-                <label className="text-xs text-gray-500 mb-1 block">Notas del día</label>
+                <label style={{
+                    fontSize: '0.72rem',
+                    color: '#3A3A4A',
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                }}>
+                    Notas del día
+                </label>
                 <textarea
                     value={notas}
                     onChange={e => setNotas(e.target.value)}
                     rows={3}
                     placeholder="Observaciones, gastos, novedades..."
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 resize-none"
+                    style={{
+                        width: '100%',
+                        background: '#0F0F18',
+                        border: '1px solid #1E1E2E',
+                        borderRadius: '12px',
+                        padding: '0.875rem 1rem',
+                        color: '#E8E6E0',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        resize: 'none',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
                 />
             </div>
 
+            {/* Botón */}
             <button
                 onClick={guardar}
                 disabled={guardando}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-xl transition-colors"
+                style={{
+                    width: '100%',
+                    padding: '1rem',
+                    background: guardando ? '#16161F' : '#F59E0B',
+                    color: guardando ? '#2A2A35' : '#0A0A0F',
+                    border: 'none',
+                    borderRadius: '14px',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    cursor: guardando ? 'not-allowed' : 'pointer',
+                    letterSpacing: '-0.01em',
+                    transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!guardando) (e.currentTarget.style.background = '#FBBF24') }}
+                onMouseLeave={e => { if (!guardando) (e.currentTarget.style.background = '#F59E0B') }}
             >
-                {guardando ? 'Guardando...' : 'Guardar arqueo'}
+                {guardando ? 'Guardando...' : 'Guardar arqueo del día'}
             </button>
         </div>
     )
