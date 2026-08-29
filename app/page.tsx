@@ -154,7 +154,7 @@ export default function Dashboard() {
                   contentStyle={{ background: '#16161F', border: '1px solid #1E1E2E', borderRadius: '8px', fontSize: '0.8rem' }}
                   labelStyle={{ color: '#6B6B80' }}
                   itemStyle={{ color: '#F59E0B' }}
-                  formatter={(v: number) => [fmt(v), 'Total']}
+                  formatter={(v: any) => [fmt(Number(v)), 'Total']}
                 />
                 <Area type="monotone" dataKey="total" stroke="#F59E0B" strokeWidth={2} fill="url(#grad)" dot={{ fill: '#F59E0B', r: 3 }} />
               </AreaChart>
