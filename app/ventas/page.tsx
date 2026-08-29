@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useTema } from '@/lib/theme'
 import Link from 'next/link'
 
 interface Venta {
@@ -32,10 +33,20 @@ const MEDIOS: Record<string, { label: string; color: string }> = {
 }
 
 export default function Ventas() {
+    const { tema } = useTema()
     const [ventas, setVentas] = useState<Venta[]>([])
     const [loading, setLoading] = useState(true)
     const [expandida, setExpandida] = useState<number | null>(null)
     const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+
+    const c = {
+        card: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
+        card2: tema === 'oscuro' ? '#16161F' : '#F0EFE9',
+        border: tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0',
+        text: tema === 'oscuro' ? '#F0EDE6' : '#1A1A1F',
+        muted: tema === 'oscuro' ? '#3A3A4A' : '#9B9B9B',
+        muted2: tema === 'oscuro' ? '#2A2A35' : '#C5C4C0',
+    }
 
     const cargar = async () => {
         setLoading(true)
@@ -52,22 +63,18 @@ export default function Ventas() {
 
     const anular = async (id: number) => {
         if (!confirm('¿Anular esta venta? Se revertirá el stock.')) return
-
         const venta = ventas.find(v => v.id === id)
         if (!venta) return
-
         await supabase.from('ventas').update({
             anulada: true,
             anulada_at: new Date().toISOString(),
         }).eq('id', id)
-
         for (const item of venta.venta_items) {
             await supabase.rpc('decrementar_stock', {
                 p_id: item.producto_id,
                 p_cantidad: -(item.cantidad || 1),
             })
         }
-
         await cargar()
     }
 
@@ -86,8 +93,8 @@ export default function Ventas() {
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Ventas</h1>
-                    <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Ventas</h1>
+                    <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
                         {ventasActivas.length} ticket{ventasActivas.length !== 1 ? 's' : ''} · {fmt(total)}
                     </p>
                 </div>
@@ -97,23 +104,15 @@ export default function Ventas() {
                         value={fecha}
                         onChange={e => setFecha(e.target.value)}
                         style={{
-                            background: '#0F0F18',
-                            border: '1px solid #1E1E2E',
-                            borderRadius: '10px',
-                            padding: '0.5rem 0.875rem',
-                            color: '#E8E6E0',
-                            fontSize: '0.85rem',
-                            outline: 'none',
+                            background: c.card, border: `1px solid ${c.border}`,
+                            borderRadius: '10px', padding: '0.5rem 0.875rem',
+                            color: c.text, fontSize: '0.85rem', outline: 'none',
                         }}
                     />
                     <Link href="/ventas/nueva" style={{
-                        background: '#F59E0B',
-                        color: '#0A0A0F',
-                        padding: '0.5rem 1.1rem',
-                        borderRadius: '10px',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        textDecoration: 'none',
+                        background: '#F59E0B', color: '#0A0A0F',
+                        padding: '0.5rem 1.1rem', borderRadius: '10px',
+                        fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
                     }}>
                         + Nueva
                     </Link>
@@ -128,28 +127,22 @@ export default function Ventas() {
                     { label: 'Anuladas', value: ventas.filter(v => v.anulada).length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
                 ].map(k => (
                     <div key={k.label} style={{
-                        background: k.bg,
-                        border: `1px solid ${k.border}`,
-                        borderRadius: '16px',
-                        padding: '1.25rem 1.5rem',
+                        background: k.bg, border: `1px solid ${k.border}`,
+                        borderRadius: '16px', padding: '1.25rem 1.5rem',
                     }}>
-                        <p style={{ fontSize: '0.72rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{k.label}</p>
+                        <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{k.label}</p>
                         <p style={{ fontSize: '1.6rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
                     </div>
                 ))}
             </div>
 
-            {loading && <p style={{ color: '#3A3A4A', fontSize: '0.85rem' }}>Cargando...</p>}
+            {loading && <p style={{ color: c.muted, fontSize: '0.85rem' }}>Cargando...</p>}
 
             {!loading && ventas.length === 0 && (
                 <div style={{
-                    background: '#0F0F18',
-                    border: '1px solid #1E1E2E',
-                    borderRadius: '16px',
-                    padding: '3rem',
-                    textAlign: 'center',
-                    color: '#2A2A35',
-                    fontSize: '0.875rem',
+                    background: c.card, border: `1px solid ${c.border}`,
+                    borderRadius: '16px', padding: '3rem',
+                    textAlign: 'center', color: c.muted2, fontSize: '0.875rem',
                 }}>
                     Sin ventas para esta fecha
                 </div>
@@ -161,67 +154,51 @@ export default function Ventas() {
                     const m = MEDIOS[v.medio_pago] || { label: v.medio_pago, color: '#6B6B80' }
                     return (
                         <div key={v.id} style={{
-                            background: '#0F0F18',
-                            border: `1px solid ${v.anulada ? '#F8717120' : '#1E1E2E'}`,
-                            borderRadius: '14px',
-                            overflow: 'hidden',
+                            background: c.card,
+                            border: `1px solid ${v.anulada ? '#F8717120' : c.border}`,
+                            borderRadius: '14px', overflow: 'hidden',
                             opacity: v.anulada ? 0.5 : 1,
                         }}>
                             <button
                                 onClick={() => setExpandida(expandida === v.id ? null : v.id)}
                                 style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '0.875rem 1.25rem',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    gap: '1rem',
+                                    width: '100%', display: 'flex', alignItems: 'center',
+                                    justifyContent: 'space-between', padding: '0.875rem 1.25rem',
+                                    background: 'transparent', border: 'none', cursor: 'pointer', gap: '1rem',
                                 }}
-                                onMouseEnter={e => (e.currentTarget.style.background = '#16161F')}
+                                onMouseEnter={e => (e.currentTarget.style.background = c.card2)}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <span style={{ fontSize: '0.78rem', color: '#3A3A4A', fontVariantNumeric: 'tabular-nums' }}>
+                                    <span style={{ fontSize: '0.78rem', color: c.muted, fontVariantNumeric: 'tabular-nums' }}>
                                         {hora(v.created_at)}
                                     </span>
                                     <span style={{
-                                        fontSize: '0.72rem',
-                                        padding: '0.2rem 0.6rem',
-                                        borderRadius: '6px',
-                                        background: m.color + '20',
-                                        color: m.color,
-                                        fontWeight: 500,
+                                        fontSize: '0.72rem', padding: '0.2rem 0.6rem',
+                                        borderRadius: '6px', background: m.color + '20',
+                                        color: m.color, fontWeight: 500,
                                     }}>
                                         {m.label}
                                     </span>
                                     {v.anulada && (
                                         <span style={{
-                                            fontSize: '0.72rem',
-                                            padding: '0.2rem 0.6rem',
-                                            borderRadius: '6px',
-                                            background: '#F8717120',
-                                            color: '#F87171',
-                                            fontWeight: 500,
+                                            fontSize: '0.72rem', padding: '0.2rem 0.6rem',
+                                            borderRadius: '6px', background: '#F8717120',
+                                            color: '#F87171', fontWeight: 500,
                                         }}>
                                             anulada
                                         </span>
                                     )}
                                     {v.descuento > 0 && (
                                         <span style={{
-                                            fontSize: '0.72rem',
-                                            padding: '0.2rem 0.6rem',
-                                            borderRadius: '6px',
-                                            background: '#A78BFA20',
-                                            color: '#A78BFA',
-                                            fontWeight: 500,
+                                            fontSize: '0.72rem', padding: '0.2rem 0.6rem',
+                                            borderRadius: '6px', background: '#A78BFA20',
+                                            color: '#A78BFA', fontWeight: 500,
                                         }}>
                                             desc.
                                         </span>
                                     )}
-                                    <span style={{ fontSize: '0.78rem', color: '#2A2A35' }}>
+                                    <span style={{ fontSize: '0.78rem', color: c.muted2 }}>
                                         {v.venta_items.length} item{v.venta_items.length !== 1 ? 's' : ''}
                                     </span>
                                 </div>
@@ -231,16 +208,16 @@ export default function Ventas() {
                             </button>
 
                             {expandida === v.id && (
-                                <div style={{ borderTop: '1px solid #1E1E2E', padding: '0.875rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ borderTop: `1px solid ${c.border}`, padding: '0.875rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {v.venta_items.map(item => (
                                         <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.85rem', color: '#6B6B80' }}>
+                                            <span style={{ fontSize: '0.85rem', color: c.muted }}>
                                                 {item.productos?.nombre}
                                                 {item.cantidad && item.cantidad > 1 && (
-                                                    <span style={{ color: '#2A2A35', marginLeft: '0.375rem' }}>×{item.cantidad}</span>
+                                                    <span style={{ color: c.muted2, marginLeft: '0.375rem' }}>×{item.cantidad}</span>
                                                 )}
                                                 {item.gramos && (
-                                                    <span style={{ color: '#2A2A35', marginLeft: '0.375rem' }}>{item.gramos}g</span>
+                                                    <span style={{ color: c.muted2, marginLeft: '0.375rem' }}>{item.gramos}g</span>
                                                 )}
                                             </span>
                                             <span style={{ fontSize: '0.85rem', color: '#F59E0B', fontWeight: 500 }}>{fmt(item.subtotal)}</span>
@@ -248,7 +225,7 @@ export default function Ventas() {
                                     ))}
 
                                     {v.descuento > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #1E1E2E' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${c.border}` }}>
                                             <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>Descuento</span>
                                             <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>−{fmt(v.descuento)}</span>
                                         </div>
@@ -258,15 +235,10 @@ export default function Ventas() {
                                         <button
                                             onClick={() => anular(v.id)}
                                             style={{
-                                                marginTop: '0.5rem',
-                                                padding: '0.5rem 1rem',
-                                                background: 'transparent',
-                                                border: '1px solid #F8717130',
-                                                borderRadius: '8px',
-                                                color: '#F87171',
-                                                fontSize: '0.78rem',
-                                                cursor: 'pointer',
-                                                width: '100%',
+                                                marginTop: '0.5rem', padding: '0.5rem 1rem',
+                                                background: 'transparent', border: '1px solid #F8717130',
+                                                borderRadius: '8px', color: '#F87171',
+                                                fontSize: '0.78rem', cursor: 'pointer', width: '100%',
                                             }}
                                             onMouseEnter={e => e.currentTarget.style.background = '#F8717110'}
                                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
