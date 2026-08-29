@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useTema } from '@/lib/theme'
 
 interface Cliente {
     id: number
@@ -21,6 +22,7 @@ const clienteVacio = {
 }
 
 export default function Clientes() {
+    const { tema } = useTema()
     const [clientes, setClientes] = useState<Cliente[]>([])
     const [loading, setLoading] = useState(true)
     const [busqueda, setBusqueda] = useState('')
@@ -28,6 +30,16 @@ export default function Clientes() {
     const [editando, setEditando] = useState<Cliente | null>(null)
     const [form, setForm] = useState(clienteVacio)
     const [guardando, setGuardando] = useState(false)
+
+    const c = {
+        card: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
+        card2: tema === 'oscuro' ? '#16161F' : '#F0EFE9',
+        border: tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0',
+        text: tema === 'oscuro' ? '#F0EDE6' : '#1A1A1F',
+        muted: tema === 'oscuro' ? '#3A3A4A' : '#9B9B9B',
+        muted2: tema === 'oscuro' ? '#2A2A35' : '#C5C4C0',
+        input: tema === 'oscuro' ? '#16161F' : '#F5F4F0',
+    }
 
     const cargar = async () => {
         const { data } = await supabase
@@ -87,20 +99,20 @@ export default function Clientes() {
         await cargar()
     }
 
-    const filtrados = clientes.filter(c =>
-        c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-        c.empresa?.toLowerCase().includes(busqueda.toLowerCase()) ||
-        c.mail?.toLowerCase().includes(busqueda.toLowerCase()) ||
-        c.telefono?.includes(busqueda)
+    const filtrados = clientes.filter(cl =>
+        cl.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        cl.empresa?.toLowerCase().includes(busqueda.toLowerCase()) ||
+        cl.mail?.toLowerCase().includes(busqueda.toLowerCase()) ||
+        cl.telefono?.includes(busqueda)
     )
 
     const inputStyle = {
         width: '100%',
-        background: '#16161F',
-        border: '1px solid #1E1E2E',
+        background: c.input,
+        border: `1px solid ${c.border}`,
         borderRadius: '10px',
         padding: '0.75rem 1rem',
-        color: '#E8E6E0',
+        color: c.text,
         fontSize: '0.9rem',
         outline: 'none',
         boxSizing: 'border-box' as const,
@@ -109,7 +121,7 @@ export default function Clientes() {
 
     const labelStyle = {
         fontSize: '0.72rem',
-        color: '#3A3A4A',
+        color: c.muted,
         display: 'block',
         marginBottom: '0.375rem',
         textTransform: 'uppercase' as const,
@@ -118,7 +130,7 @@ export default function Clientes() {
 
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-            <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>
+            <div style={{ color: c.muted2, fontSize: '0.9rem' }}>Cargando...</div>
         </div>
     )
 
@@ -128,8 +140,8 @@ export default function Clientes() {
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Clientes</h1>
-                    <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>{clientes.length} clientes registrados</p>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Clientes</h1>
+                    <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>{clientes.length} clientes registrados</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <input
@@ -138,30 +150,20 @@ export default function Clientes() {
                         value={busqueda}
                         onChange={e => setBusqueda(e.target.value)}
                         style={{
-                            background: '#0F0F18',
-                            border: '1px solid #1E1E2E',
-                            borderRadius: '10px',
-                            padding: '0.5rem 1rem',
-                            color: '#E8E6E0',
-                            fontSize: '0.85rem',
-                            outline: 'none',
-                            width: '240px',
+                            background: c.card, border: `1px solid ${c.border}`,
+                            borderRadius: '10px', padding: '0.5rem 1rem',
+                            color: c.text, fontSize: '0.85rem', outline: 'none', width: '240px',
                         }}
                         onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                        onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                        onBlur={e => e.target.style.borderColor = c.border}
                     />
                     <button
                         onClick={abrirNuevo}
                         style={{
-                            background: '#F59E0B',
-                            color: '#0A0A0F',
-                            border: 'none',
-                            borderRadius: '10px',
-                            padding: '0.5rem 1.1rem',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
+                            background: '#F59E0B', color: '#0A0A0F',
+                            border: 'none', borderRadius: '10px',
+                            padding: '0.5rem 1.1rem', fontSize: '0.85rem',
+                            fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
                         }}
                     >
                         + Nuevo
@@ -170,19 +172,15 @@ export default function Clientes() {
             </div>
 
             {/* Tabla */}
-            <div style={{ background: '#0F0F18', border: '1px solid #1E1E2E', borderRadius: '16px', overflow: 'hidden' }}>
+            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                     <thead>
-                        <tr style={{ borderBottom: '1px solid #1E1E2E' }}>
+                        <tr style={{ borderBottom: `1px solid ${c.border}` }}>
                             {['Nombre', 'Empresa', 'Mail', 'Teléfono', 'Notas', ''].map(h => (
                                 <th key={h} style={{
-                                    padding: '0.875rem 1rem',
-                                    textAlign: 'left',
-                                    fontSize: '0.72rem',
-                                    color: '#3A3A4A',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.06em',
-                                    fontWeight: 500,
+                                    padding: '0.875rem 1rem', textAlign: 'left',
+                                    fontSize: '0.72rem', color: c.muted,
+                                    textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500,
                                 }}>{h}</th>
                             ))}
                         </tr>
@@ -190,53 +188,45 @@ export default function Clientes() {
                     <tbody>
                         {filtrados.length === 0 && (
                             <tr>
-                                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#2A2A35' }}>
+                                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: c.muted2 }}>
                                     {busqueda ? 'Sin resultados' : 'Sin clientes registrados'}
                                 </td>
                             </tr>
                         )}
-                        {filtrados.map((c, i) => (
-                            <tr key={c.id} style={{ borderBottom: i < filtrados.length - 1 ? '1px solid #1E1E2E' : 'none' }}>
-                                <td style={{ padding: '0.875rem 1rem', color: '#E8E6E0', fontWeight: 500 }}>{c.nombre}</td>
-                                <td style={{ padding: '0.875rem 1rem', color: '#6B6B80' }}>{c.empresa || '—'}</td>
-                                <td style={{ padding: '0.875rem 1rem', color: '#6B6B80' }}>
-                                    {c.mail ? (
-                                        <a href={`mailto:${c.mail}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{c.mail}</a>
-                                    ) : '—'}
+                        {filtrados.map((cl, i) => (
+                            <tr key={cl.id} style={{ borderBottom: i < filtrados.length - 1 ? `1px solid ${c.border}` : 'none' }}>
+                                <td style={{ padding: '0.875rem 1rem', color: c.text, fontWeight: 500 }}>{cl.nombre}</td>
+                                <td style={{ padding: '0.875rem 1rem', color: c.muted }}>{cl.empresa || '—'}</td>
+                                <td style={{ padding: '0.875rem 1rem' }}>
+                                    {cl.mail ? (
+                                        <a href={`mailto:${cl.mail}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{cl.mail}</a>
+                                    ) : <span style={{ color: c.muted }}>—</span>}
                                 </td>
-                                <td style={{ padding: '0.875rem 1rem', color: '#6B6B80' }}>{c.telefono || '—'}</td>
-                                <td style={{ padding: '0.875rem 1rem', color: '#3A3A4A', fontSize: '0.8rem' }}>{c.notas || '—'}</td>
+                                <td style={{ padding: '0.875rem 1rem', color: c.muted }}>{cl.telefono || '—'}</td>
+                                <td style={{ padding: '0.875rem 1rem', color: c.muted, fontSize: '0.8rem' }}>{cl.notas || '—'}</td>
                                 <td style={{ padding: '0.875rem 1rem' }}>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <button
-                                            onClick={() => abrirEditar(c)}
+                                            onClick={() => abrirEditar(cl)}
                                             style={{
-                                                background: 'transparent',
-                                                border: '1px solid #1E1E2E',
-                                                borderRadius: '8px',
-                                                padding: '0.3rem 0.75rem',
-                                                color: '#6B6B80',
-                                                fontSize: '0.78rem',
-                                                cursor: 'pointer',
+                                                background: 'transparent', border: `1px solid ${c.border}`,
+                                                borderRadius: '8px', padding: '0.3rem 0.75rem',
+                                                color: c.muted, fontSize: '0.78rem', cursor: 'pointer',
                                             }}
                                             onMouseEnter={e => { e.currentTarget.style.borderColor = '#F59E0B50'; e.currentTarget.style.color = '#F59E0B' }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#6B6B80' }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
                                         >
                                             editar
                                         </button>
                                         <button
-                                            onClick={() => eliminar(c.id)}
+                                            onClick={() => eliminar(cl.id)}
                                             style={{
-                                                background: 'transparent',
-                                                border: '1px solid #1E1E2E',
-                                                borderRadius: '8px',
-                                                padding: '0.3rem 0.75rem',
-                                                color: '#6B6B80',
-                                                fontSize: '0.78rem',
-                                                cursor: 'pointer',
+                                                background: 'transparent', border: `1px solid ${c.border}`,
+                                                borderRadius: '8px', padding: '0.3rem 0.75rem',
+                                                color: c.muted, fontSize: '0.78rem', cursor: 'pointer',
                                             }}
                                             onMouseEnter={e => { e.currentTarget.style.borderColor = '#F8717150'; e.currentTarget.style.color = '#F87171' }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#6B6B80' }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
                                         >
                                             eliminar
                                         </button>
@@ -251,28 +241,19 @@ export default function Clientes() {
             {/* Modal */}
             {modal && (
                 <div style={{
-                    position: 'fixed', inset: 0,
-                    background: '#00000080',
+                    position: 'fixed', inset: 0, background: '#00000080',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 50, padding: '1rem',
-                    backdropFilter: 'blur(4px)',
+                    zIndex: 50, padding: '1rem', backdropFilter: 'blur(4px)',
                 }}>
                     <div style={{
-                        background: '#0F0F18',
-                        border: '1px solid #1E1E2E',
-                        borderRadius: '20px',
-                        padding: '2rem',
-                        width: '100%',
-                        maxWidth: '420px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1rem',
+                        background: c.card, border: `1px solid ${c.border}`,
+                        borderRadius: '20px', padding: '2rem',
+                        width: '100%', maxWidth: '420px',
+                        display: 'flex', flexDirection: 'column', gap: '1rem',
                     }}>
-                        <div>
-                            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#F0EDE6' }}>
-                                {editando ? 'Editar cliente' : 'Nuevo cliente'}
-                            </h2>
-                        </div>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 600, color: c.text }}>
+                            {editando ? 'Editar cliente' : 'Nuevo cliente'}
+                        </h2>
 
                         {[
                             { label: 'Nombre *', key: 'nombre', type: 'text', placeholder: 'Nombre completo' },
@@ -289,7 +270,7 @@ export default function Clientes() {
                                     placeholder={f.placeholder}
                                     style={inputStyle}
                                     onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                                    onBlur={e => e.target.style.borderColor = c.border}
                                 />
                             </div>
                         ))}
@@ -303,7 +284,7 @@ export default function Clientes() {
                                 rows={2}
                                 style={{ ...inputStyle, resize: 'none' }}
                                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                                onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                                onBlur={e => e.target.style.borderColor = c.border}
                             />
                         </div>
 
@@ -311,13 +292,9 @@ export default function Clientes() {
                             <button
                                 onClick={() => setModal(false)}
                                 style={{
-                                    flex: 1, padding: '0.75rem',
-                                    background: 'transparent',
-                                    border: '1px solid #1E1E2E',
-                                    borderRadius: '10px',
-                                    color: '#6B6B80',
-                                    fontSize: '0.875rem',
-                                    cursor: 'pointer',
+                                    flex: 1, padding: '0.75rem', background: 'transparent',
+                                    border: `1px solid ${c.border}`, borderRadius: '10px',
+                                    color: c.muted, fontSize: '0.875rem', cursor: 'pointer',
                                 }}
                             >
                                 Cancelar
@@ -327,12 +304,10 @@ export default function Clientes() {
                                 disabled={guardando || !form.nombre.trim()}
                                 style={{
                                     flex: 1, padding: '0.75rem',
-                                    background: !form.nombre.trim() ? '#16161F' : '#F59E0B',
-                                    border: 'none',
-                                    borderRadius: '10px',
-                                    color: !form.nombre.trim() ? '#2A2A35' : '#0A0A0F',
-                                    fontSize: '0.875rem',
-                                    fontWeight: 600,
+                                    background: !form.nombre.trim() ? c.card2 : '#F59E0B',
+                                    border: 'none', borderRadius: '10px',
+                                    color: !form.nombre.trim() ? c.muted2 : '#0A0A0F',
+                                    fontSize: '0.875rem', fontWeight: 600,
                                     cursor: !form.nombre.trim() ? 'not-allowed' : 'pointer',
                                 }}
                             >
