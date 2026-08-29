@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useTema } from '@/lib/theme'
 
 interface Producto {
     id: number
@@ -10,11 +11,21 @@ interface Producto {
 }
 
 export default function Stock() {
+    const { tema } = useTema()
     const [productos, setProductos] = useState<Producto[]>([])
     const [loading, setLoading] = useState(true)
     const [ajustes, setAjustes] = useState<Record<number, number>>({})
     const [guardando, setGuardando] = useState<number | null>(null)
     const [busqueda, setBusqueda] = useState('')
+
+    const c = {
+        card: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
+        card2: tema === 'oscuro' ? '#16161F' : '#F0EFE9',
+        border: tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0',
+        text: tema === 'oscuro' ? '#F0EDE6' : '#1A1A1F',
+        muted: tema === 'oscuro' ? '#3A3A4A' : '#9B9B9B',
+        muted2: tema === 'oscuro' ? '#2A2A35' : '#C5C4C0',
+    }
 
     const cargar = async () => {
         const { data } = await supabase
@@ -45,7 +56,7 @@ export default function Stock() {
 
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-            <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>
+            <div style={{ color: c.muted2, fontSize: '0.9rem' }}>Cargando...</div>
         </div>
     )
 
@@ -55,8 +66,8 @@ export default function Stock() {
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Stock</h1>
-                    <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Stock</h1>
+                    <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
                         {criticos.length > 0 && <span style={{ color: '#F87171' }}>{criticos.length} sin stock · </span>}
                         {bajos.length > 0 && <span style={{ color: '#FBBF24' }}>{bajos.length} stock bajo · </span>}
                         {productos.length} productos
@@ -68,17 +79,12 @@ export default function Stock() {
                     value={busqueda}
                     onChange={e => setBusqueda(e.target.value)}
                     style={{
-                        background: '#0F0F18',
-                        border: '1px solid #1E1E2E',
-                        borderRadius: '10px',
-                        padding: '0.5rem 1rem',
-                        color: '#E8E6E0',
-                        fontSize: '0.85rem',
-                        outline: 'none',
-                        width: '220px',
+                        background: c.card, border: `1px solid ${c.border}`,
+                        borderRadius: '10px', padding: '0.5rem 1rem',
+                        color: c.text, fontSize: '0.85rem', outline: 'none', width: '220px',
                     }}
                     onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                    onBlur={e => e.target.style.borderColor = c.border}
                 />
             </div>
 
@@ -90,36 +96,26 @@ export default function Stock() {
                     { label: 'OK', value: productos.length - criticos.length - bajos.length, color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
                 ].map(k => (
                     <div key={k.label} style={{
-                        background: k.bg,
-                        border: `1px solid ${k.border}`,
-                        borderRadius: '16px',
-                        padding: '1.25rem 1.5rem',
+                        background: k.bg, border: `1px solid ${k.border}`,
+                        borderRadius: '16px', padding: '1.25rem 1.5rem',
                     }}>
-                        <p style={{ fontSize: '0.72rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{k.label}</p>
+                        <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{k.label}</p>
                         <p style={{ fontSize: '1.6rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
                     </div>
                 ))}
             </div>
 
             {/* Tabla */}
-            <div style={{
-                background: '#0F0F18',
-                border: '1px solid #1E1E2E',
-                borderRadius: '16px',
-                overflow: 'hidden',
-            }}>
+            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                     <thead>
-                        <tr style={{ borderBottom: '1px solid #1E1E2E' }}>
+                        <tr style={{ borderBottom: `1px solid ${c.border}` }}>
                             {['Producto', 'Stock actual', 'Nuevo stock', ''].map(h => (
                                 <th key={h} style={{
                                     padding: '0.875rem 1rem',
                                     textAlign: h === 'Producto' ? 'left' : 'right',
-                                    fontSize: '0.72rem',
-                                    color: '#3A3A4A',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.06em',
-                                    fontWeight: 500,
+                                    fontSize: '0.72rem', color: c.muted,
+                                    textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500,
                                 }}>{h}</th>
                             ))}
                         </tr>
@@ -129,15 +125,12 @@ export default function Stock() {
                             const nuevo = ajustes[p.id] ?? p.stock
                             const cambio = nuevo !== p.stock
                             return (
-                                <tr key={p.id} style={{ borderBottom: i < filtrados.length - 1 ? '1px solid #1E1E2E' : 'none' }}>
-                                    <td style={{ padding: '0.875rem 1rem', color: '#E8E6E0', fontWeight: 500 }}>
-                                        {p.nombre}
-                                    </td>
+                                <tr key={p.id} style={{ borderBottom: i < filtrados.length - 1 ? `1px solid ${c.border}` : 'none' }}>
+                                    <td style={{ padding: '0.875rem 1rem', color: c.text, fontWeight: 500 }}>{p.nombre}</td>
                                     <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
                                         <span style={{
-                                            fontSize: '0.9rem',
-                                            fontWeight: 600,
-                                            color: p.stock <= 0 ? '#F87171' : p.stock < 10 ? '#FBBF24' : '#6B6B80',
+                                            fontSize: '0.9rem', fontWeight: 600,
+                                            color: p.stock <= 0 ? '#F87171' : p.stock < 10 ? '#FBBF24' : c.muted,
                                         }}>
                                             {p.stock}
                                         </span>
@@ -148,15 +141,11 @@ export default function Stock() {
                                             value={nuevo}
                                             onChange={e => setAjustes({ ...ajustes, [p.id]: Number(e.target.value) })}
                                             style={{
-                                                width: '80px',
-                                                background: '#16161F',
-                                                border: `1px solid ${cambio ? '#F59E0B50' : '#1E1E2E'}`,
-                                                borderRadius: '8px',
-                                                padding: '0.375rem 0.75rem',
-                                                color: cambio ? '#F59E0B' : '#E8E6E0',
-                                                fontSize: '0.875rem',
-                                                textAlign: 'right',
-                                                outline: 'none',
+                                                width: '80px', background: c.card2,
+                                                border: `1px solid ${cambio ? '#F59E0B50' : c.border}`,
+                                                borderRadius: '8px', padding: '0.375rem 0.75rem',
+                                                color: cambio ? '#F59E0B' : c.text,
+                                                fontSize: '0.875rem', textAlign: 'right', outline: 'none',
                                                 fontWeight: cambio ? 600 : 400,
                                             }}
                                         />
@@ -166,14 +155,11 @@ export default function Stock() {
                                             onClick={() => ajustar(p.id, nuevo)}
                                             disabled={!cambio || guardando === p.id}
                                             style={{
-                                                padding: '0.375rem 0.875rem',
-                                                borderRadius: '8px',
-                                                fontSize: '0.78rem',
-                                                fontWeight: 500,
-                                                border: 'none',
+                                                padding: '0.375rem 0.875rem', borderRadius: '8px',
+                                                fontSize: '0.78rem', fontWeight: 500, border: 'none',
                                                 cursor: cambio ? 'pointer' : 'not-allowed',
-                                                background: cambio ? '#F59E0B' : '#16161F',
-                                                color: cambio ? '#0A0A0F' : '#2A2A35',
+                                                background: cambio ? '#F59E0B' : c.card2,
+                                                color: cambio ? '#0A0A0F' : c.muted2,
                                                 transition: 'all 0.15s',
                                             }}
                                         >
