@@ -2,39 +2,34 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useTema } from '@/lib/theme'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
-interface ResumenDia {
-  fecha: string
-  cantidad_tickets: number
-  total_dia: number
-  efectivo: number
-  tarjeta: number
-  transferencia: number
-  mercadopago: number
-  pedidosya: number
-}
-
 export default function Dashboard() {
-  const [hoy, setHoy] = useState<ResumenDia | null>(null)
+  const { tema } = useTema()
+  const [hoy, setHoy] = useState<any>(null)
   const [topProductos, setTopProductos] = useState<any[]>([])
   const [semana, setSemana] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  const c = {
+    card: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
+    card2: tema === 'oscuro' ? '#16161F' : '#F0EFE9',
+    border: tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0',
+    text: tema === 'oscuro' ? '#F0EDE6' : '#1A1A1F',
+    muted: tema === 'oscuro' ? '#3A3A4A' : '#9B9B9B',
+    muted2: tema === 'oscuro' ? '#2A2A35' : '#C5C4C0',
+  }
 
   useEffect(() => {
     async function cargar() {
       const hoyStr = new Date().toISOString().split('T')[0]
 
       const { data: resumen } = await supabase
-        .from('resumen_diario')
-        .select('*')
-        .eq('fecha', hoyStr)
-        .single()
+        .from('resumen_diario').select('*').eq('fecha', hoyStr).single()
 
       const { data: top } = await supabase
-        .from('top_productos')
-        .select('*')
-        .limit(6)
+        .from('top_productos').select('*').limit(6)
 
       const { data: ultimos } = await supabase
         .from('resumen_diario')
@@ -59,7 +54,7 @@ export default function Dashboard() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-      <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>
+      <div style={{ color: c.muted2, fontSize: '0.9rem' }}>Cargando...</div>
     </div>
   )
 
@@ -86,22 +81,17 @@ export default function Dashboard() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>
             Buenos días 👋
           </h1>
-          <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+          <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
             {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
         <a href="/ventas/nueva" style={{
-          background: '#F59E0B',
-          color: '#0A0A0F',
-          padding: '0.6rem 1.2rem',
-          borderRadius: '10px',
-          fontSize: '0.85rem',
-          fontWeight: 600,
-          textDecoration: 'none',
-          letterSpacing: '-0.01em',
+          background: '#F59E0B', color: '#0A0A0F',
+          padding: '0.6rem 1.2rem', borderRadius: '10px',
+          fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
         }}>
           + Nueva venta
         </a>
@@ -111,12 +101,10 @@ export default function Dashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
         {kpis.map(k => (
           <div key={k.label} style={{
-            background: k.bg,
-            border: `1px solid ${k.border}`,
-            borderRadius: '16px',
-            padding: '1.25rem 1.5rem',
+            background: k.bg, border: `1px solid ${k.border}`,
+            borderRadius: '16px', padding: '1.25rem 1.5rem',
           }}>
-            <p style={{ fontSize: '0.72rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+            <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
               {k.label}
             </p>
             <p style={{ fontSize: '1.6rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em', lineHeight: 1 }}>
@@ -126,17 +114,11 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Gráfico + Medios de pago */}
+      {/* Gráfico + Medios */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
 
-        {/* Gráfico semanal */}
-        <div style={{
-          background: '#0F0F18',
-          border: '1px solid #1E1E2E',
-          borderRadius: '16px',
-          padding: '1.5rem',
-        }}>
-          <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', padding: '1.5rem' }}>
+          <p style={{ fontSize: '0.8rem', color: c.muted, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Últimos 7 días
           </p>
           {semana.length > 0 ? (
@@ -148,11 +130,11 @@ export default function Dashboard() {
                     <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="fecha" tick={{ fill: '#3A3A4A', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="fecha" tick={{ fill: c.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis hide />
                 <Tooltip
-                  contentStyle={{ background: '#16161F', border: '1px solid #1E1E2E', borderRadius: '8px', fontSize: '0.8rem' }}
-                  labelStyle={{ color: '#6B6B80' }}
+                  contentStyle={{ background: c.card2, border: `1px solid ${c.border}`, borderRadius: '8px', fontSize: '0.8rem' }}
+                  labelStyle={{ color: c.muted }}
                   itemStyle={{ color: '#F59E0B' }}
                   formatter={(v: any) => [fmt(Number(v)), 'Total']}
                 />
@@ -160,39 +142,32 @@ export default function Dashboard() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2A2A35', fontSize: '0.85rem' }}>
+            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.muted2, fontSize: '0.85rem' }}>
               Sin datos aún
             </div>
           )}
         </div>
 
-        {/* Medios de pago */}
-        <div style={{
-          background: '#0F0F18',
-          border: '1px solid #1E1E2E',
-          borderRadius: '16px',
-          padding: '1.5rem',
-        }}>
-          <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', padding: '1.5rem' }}>
+          <p style={{ fontSize: '0.8rem', color: c.muted, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Medios de pago hoy
           </p>
           {medios.length === 0 ? (
-            <div style={{ color: '#2A2A35', fontSize: '0.85rem', marginTop: '2rem', textAlign: 'center' }}>Sin ventas aún</div>
+            <div style={{ color: c.muted2, fontSize: '0.85rem', marginTop: '2rem', textAlign: 'center' }}>Sin ventas aún</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {medios.map(m => (
                 <div key={m.label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#6B6B80' }}>{m.label}</span>
+                    <span style={{ fontSize: '0.8rem', color: c.muted }}>{m.label}</span>
                     <span style={{ fontSize: '0.8rem', color: m.color, fontWeight: 500 }}>{fmt(m.value)}</span>
                   </div>
-                  <div style={{ height: '4px', background: '#1E1E2E', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ height: '4px', background: c.border, borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%',
                       width: `${(m.value / totalMedios) * 100}%`,
                       background: m.color,
                       borderRadius: '4px',
-                      transition: 'width 0.5s ease',
                     }} />
                   </div>
                 </div>
@@ -203,43 +178,27 @@ export default function Dashboard() {
       </div>
 
       {/* Top productos */}
-      <div style={{
-        background: '#0F0F18',
-        border: '1px solid #1E1E2E',
-        borderRadius: '16px',
-        padding: '1.5rem',
-      }}>
-        <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', padding: '1.5rem' }}>
+        <p style={{ fontSize: '0.8rem', color: c.muted, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Top productos
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
           {topProductos.map((p, i) => (
             <div key={i} style={{
-              background: '#16161F',
-              border: '1px solid #1E1E2E',
-              borderRadius: '12px',
-              padding: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
+              background: c.card2, border: `1px solid ${c.border}`,
+              borderRadius: '12px', padding: '1rem',
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
             }}>
               <div style={{
-                width: '32px',
-                height: '32px',
-                background: '#F59E0B15',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#F59E0B',
-                flexShrink: 0,
+                width: '32px', height: '32px',
+                background: '#F59E0B15', borderRadius: '8px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.75rem', fontWeight: 700, color: '#F59E0B', flexShrink: 0,
               }}>
                 #{i + 1}
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <p style={{ fontSize: '0.8rem', color: '#E8E6E0', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontSize: '0.8rem', color: c.text, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {p.nombre}
                 </p>
                 <p style={{ fontSize: '0.75rem', color: '#4ADE80', marginTop: '0.1rem' }}>
@@ -249,7 +208,7 @@ export default function Dashboard() {
             </div>
           ))}
           {topProductos.length === 0 && (
-            <div style={{ gridColumn: 'span 3', textAlign: 'center', color: '#2A2A35', padding: '2rem', fontSize: '0.85rem' }}>
+            <div style={{ gridColumn: 'span 3', textAlign: 'center', color: c.muted2, padding: '2rem', fontSize: '0.85rem' }}>
               Sin ventas aún
             </div>
           )}
