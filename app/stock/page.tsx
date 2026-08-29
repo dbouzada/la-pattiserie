@@ -7,7 +7,6 @@ interface Producto {
     id: number
     nombre: string
     stock: number
-    activo: boolean
 }
 
 export default function Stock() {
@@ -20,7 +19,7 @@ export default function Stock() {
     const cargar = async () => {
         const { data } = await supabase
             .from('productos')
-            .select('id, nombre, stock, activo')
+            .select('id, nombre, stock')
             .eq('activo', true)
             .order('nombre')
         setProductos(data || [])
@@ -42,69 +41,141 @@ export default function Stock() {
     )
 
     const criticos = productos.filter(p => p.stock <= 0)
+    const bajos = productos.filter(p => p.stock > 0 && p.stock < 10)
 
-    if (loading) return <p className="text-gray-400">Cargando...</p>
+    if (loading) return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+            <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>
+        </div>
+    )
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold text-amber-400">Stock</h1>
-                {criticos.length > 0 && (
-                    <span className="text-xs bg-red-900 text-red-400 px-3 py-1 rounded-full">
-                        {criticos.length} sin stock
-                    </span>
-                )}
+        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Stock</h1>
+                    <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+                        {criticos.length > 0 && <span style={{ color: '#F87171' }}>{criticos.length} sin stock · </span>}
+                        {bajos.length > 0 && <span style={{ color: '#FBBF24' }}>{bajos.length} stock bajo · </span>}
+                        {productos.length} productos
+                    </p>
+                </div>
+                <input
+                    type="text"
+                    placeholder="Buscar..."
+                    value={busqueda}
+                    onChange={e => setBusqueda(e.target.value)}
+                    style={{
+                        background: '#0F0F18',
+                        border: '1px solid #1E1E2E',
+                        borderRadius: '10px',
+                        padding: '0.5rem 1rem',
+                        color: '#E8E6E0',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        width: '220px',
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                />
             </div>
 
-            <input
-                type="text"
-                placeholder="Buscar producto..."
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
-            />
+            {/* KPIs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                {[
+                    { label: 'Sin stock', value: criticos.length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
+                    { label: 'Stock bajo', value: bajos.length, color: '#FBBF24', bg: '#FBBF2410', border: '#FBBF2425' },
+                    { label: 'OK', value: productos.length - criticos.length - bajos.length, color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
+                ].map(k => (
+                    <div key={k.label} style={{
+                        background: k.bg,
+                        border: `1px solid ${k.border}`,
+                        borderRadius: '16px',
+                        padding: '1.25rem 1.5rem',
+                    }}>
+                        <p style={{ fontSize: '0.72rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{k.label}</p>
+                        <p style={{ fontSize: '1.6rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
+                    </div>
+                ))}
+            </div>
 
-            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-                <table className="w-full text-sm">
+            {/* Tabla */}
+            <div style={{
+                background: '#0F0F18',
+                border: '1px solid #1E1E2E',
+                borderRadius: '16px',
+                overflow: 'hidden',
+            }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                     <thead>
-                        <tr className="text-gray-500 text-xs border-b border-gray-800">
-                            <th className="text-left px-4 py-3">Producto</th>
-                            <th className="text-right px-4 py-3">Stock actual</th>
-                            <th className="text-right px-4 py-3">Nuevo stock</th>
-                            <th className="px-4 py-3"></th>
+                        <tr style={{ borderBottom: '1px solid #1E1E2E' }}>
+                            {['Producto', 'Stock actual', 'Nuevo stock', ''].map(h => (
+                                <th key={h} style={{
+                                    padding: '0.875rem 1rem',
+                                    textAlign: h === 'Producto' ? 'left' : 'right',
+                                    fontSize: '0.72rem',
+                                    color: '#3A3A4A',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    fontWeight: 500,
+                                }}>{h}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
-                        {filtrados.map(p => {
+                        {filtrados.map((p, i) => {
                             const nuevo = ajustes[p.id] ?? p.stock
                             const cambio = nuevo !== p.stock
                             return (
-                                <tr key={p.id} className="border-b border-gray-800 last:border-0">
-                                    <td className="px-4 py-3 text-white">{p.nombre}</td>
-                                    <td className="px-4 py-3 text-right">
-                                        <span className={`font-medium ${p.stock <= 0 ? 'text-red-400' :
-                                                p.stock < 10 ? 'text-orange-400' :
-                                                    'text-gray-300'
-                                            }`}>
+                                <tr key={p.id} style={{ borderBottom: i < filtrados.length - 1 ? '1px solid #1E1E2E' : 'none' }}>
+                                    <td style={{ padding: '0.875rem 1rem', color: '#E8E6E0', fontWeight: 500 }}>
+                                        {p.nombre}
+                                    </td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                        <span style={{
+                                            fontSize: '0.9rem',
+                                            fontWeight: 600,
+                                            color: p.stock <= 0 ? '#F87171' : p.stock < 10 ? '#FBBF24' : '#6B6B80',
+                                        }}>
                                             {p.stock}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 text-right">
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
                                         <input
                                             type="number"
                                             value={nuevo}
                                             onChange={e => setAjustes({ ...ajustes, [p.id]: Number(e.target.value) })}
-                                            className="w-24 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-right focus:outline-none focus:border-amber-500"
+                                            style={{
+                                                width: '80px',
+                                                background: '#16161F',
+                                                border: `1px solid ${cambio ? '#F59E0B50' : '#1E1E2E'}`,
+                                                borderRadius: '8px',
+                                                padding: '0.375rem 0.75rem',
+                                                color: cambio ? '#F59E0B' : '#E8E6E0',
+                                                fontSize: '0.875rem',
+                                                textAlign: 'right',
+                                                outline: 'none',
+                                                fontWeight: cambio ? 600 : 400,
+                                            }}
                                         />
                                     </td>
-                                    <td className="px-4 py-3 text-right">
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
                                         <button
                                             onClick={() => ajustar(p.id, nuevo)}
                                             disabled={!cambio || guardando === p.id}
-                                            className={`text-xs px-3 py-1 rounded transition-colors ${cambio
-                                                    ? 'bg-amber-500 hover:bg-amber-400 text-black font-medium'
-                                                    : 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                                                }`}
+                                            style={{
+                                                padding: '0.375rem 0.875rem',
+                                                borderRadius: '8px',
+                                                fontSize: '0.78rem',
+                                                fontWeight: 500,
+                                                border: 'none',
+                                                cursor: cambio ? 'pointer' : 'not-allowed',
+                                                background: cambio ? '#F59E0B' : '#16161F',
+                                                color: cambio ? '#0A0A0F' : '#2A2A35',
+                                                transition: 'all 0.15s',
+                                            }}
                                         >
                                             {guardando === p.id ? '...' : 'Guardar'}
                                         </button>
