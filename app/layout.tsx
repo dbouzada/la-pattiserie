@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import NavBar from '@/components/NavBar'
+import { TemaProvider } from '@/lib/theme'
 
 export const metadata: Metadata = {
   title: 'La Pattiserie',
@@ -15,8 +16,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body style={{ margin: 0, padding: 0 }}>
-        <NavBar />
-        {children}
+        <TemaProvider>
+          <NavBar />
+          {children}
+        </TemaProvider>
       </body>
     </html>
   )

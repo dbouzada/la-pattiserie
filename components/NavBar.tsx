@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useTema } from '@/lib/theme'
 
 const links = [
     { href: '/', label: 'Dashboard', icon: '◈' },
@@ -18,6 +19,11 @@ const links = [
 export default function NavBar() {
     const pathname = usePathname()
     const router = useRouter()
+    const { tema, toggleTema } = useTema()
+
+    const bg = tema === 'oscuro' ? '#0F0F18' : '#FFFFFF'
+    const border = tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0'
+    const textMuted = tema === 'oscuro' ? '#6B6B80' : '#9B9B9B'
 
     if (pathname === '/login') return null
 
@@ -29,11 +35,12 @@ export default function NavBar() {
 
     return (
         <nav style={{
-            background: '#0F0F18',
-            borderBottom: '1px solid #1E1E2E',
+            background: bg,
+            borderBottom: `1px solid ${border}`,
             position: 'sticky',
             top: 0,
             zIndex: 50,
+            transition: 'background 0.2s',
         }}>
             <div style={{
                 maxWidth: '80rem',
@@ -44,7 +51,6 @@ export default function NavBar() {
                 gap: '0.5rem',
                 height: '56px',
             }}>
-                {/* Logo */}
                 <Link href="/" style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -61,7 +67,6 @@ export default function NavBar() {
                     }}>La Pattiserie</span>
                 </Link>
 
-                {/* Links */}
                 <div style={{ display: 'flex', gap: '0.25rem', flex: 1 }}>
                     {links.map(link => {
                         const active = pathname === link.href
@@ -74,7 +79,7 @@ export default function NavBar() {
                                 borderRadius: '8px',
                                 fontSize: '0.8rem',
                                 fontWeight: active ? 500 : 400,
-                                color: active ? '#F59E0B' : '#6B6B80',
+                                color: active ? '#F59E0B' : textMuted,
                                 background: active ? '#F59E0B15' : 'transparent',
                                 textDecoration: 'none',
                                 transition: 'all 0.15s',
@@ -87,14 +92,31 @@ export default function NavBar() {
                     })}
                 </div>
 
-                {/* Logout */}
+                {/* Toggle tema */}
+                <button
+                    onClick={toggleTema}
+                    style={{
+                        padding: '0.375rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        color: textMuted,
+                        background: 'transparent',
+                        border: `1px solid ${border}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                    }}
+                    title={tema === 'oscuro' ? 'Modo claro' : 'Modo oscuro'}
+                >
+                    {tema === 'oscuro' ? '☀️' : '🌙'}
+                </button>
+
                 <button onClick={logout} style={{
                     padding: '0.375rem 0.75rem',
                     borderRadius: '8px',
                     fontSize: '0.8rem',
-                    color: '#6B6B80',
+                    color: textMuted,
                     background: 'transparent',
-                    border: '1px solid #1E1E2E',
+                    border: `1px solid ${border}`,
                     cursor: 'pointer',
                 }}>
                     Salir
