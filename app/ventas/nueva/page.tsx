@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 interface Producto {
     id: number
@@ -19,9 +20,13 @@ interface ItemCarrito {
     subtotal: number
 }
 
-
-
-const MEDIOS = ['efectivo', 'tarjeta', 'transferencia', 'mercadopago', 'pedidosya']
+const MEDIOS = [
+    { key: 'efectivo', label: 'Efectivo', color: '#FBBF24' },
+    { key: 'tarjeta', label: 'Tarjeta', color: '#60A5FA' },
+    { key: 'transferencia', label: 'Transferencia', color: '#A78BFA' },
+    { key: 'mercadopago', label: 'Mercado Pago', color: '#34D399' },
+    { key: 'pedidosya', label: 'Pedidos Ya', color: '#F87171' },
+]
 
 export default function NuevaVenta() {
     const [productos, setProductos] = useState<Producto[]>([])
@@ -30,6 +35,7 @@ export default function NuevaVenta() {
     const [medio, setMedio] = useState('efectivo')
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
+    const router = useRouter()
 
     useEffect(() => {
         supabase.from('productos').select('*').eq('activo', true).order('nombre')
@@ -49,12 +55,7 @@ export default function NuevaVenta() {
                     : i
             ))
         } else {
-            setCarrito([...carrito, {
-                producto: p,
-                cantidad: 1,
-                gramos: null,
-                subtotal: p.precio_venta
-            }])
+            setCarrito([...carrito, { producto: p, cantidad: 1, gramos: null, subtotal: p.precio_venta }])
         }
         setBusqueda('')
     }
@@ -71,18 +72,10 @@ export default function NuevaVenta() {
         ))
     }
 
-    const actualizarGramos = (id: number, gramos: number) => {
-        setCarrito(carrito.map(i =>
-            i.producto.id === id
-                ? { ...i, gramos, subtotal: Math.round((gramos / 1000) * (i.producto.precio_kg || i.producto.precio_venta)) }
-                : i
-        ))
-    }
-
     const total = carrito.reduce((acc, i) => acc + i.subtotal, 0)
 
     const fmt = (n: number) =>
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n)
+        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 
     const confirmar = async () => {
         if (carrito.length === 0) return
@@ -103,15 +96,14 @@ export default function NuevaVenta() {
                 cantidad: i.producto.venta_por === 'unidad' ? i.cantidad : null,
                 gramos: i.producto.venta_por === 'gramos' ? i.gramos : null,
                 precio_unit: i.producto.precio_venta,
-                subtotal: i.subtotal
+                subtotal: i.subtotal,
             }))
         )
 
-        // Actualizar stock
         for (const item of carrito) {
             await supabase.rpc('decrementar_stock', {
                 p_id: item.producto.id,
-                p_cantidad: item.cantidad
+                p_cantidad: item.cantidad,
             })
         }
 
@@ -122,35 +114,92 @@ export default function NuevaVenta() {
         setTimeout(() => setExito(false), 3000)
     }
 
-    return (
-        <div className="max-w-2xl mx-auto space-y-4">
-            <h1 className="text-2xl font-semibold text-amber-400">Nueva venta</h1>
+    const medioActual = MEDIOS.find(m => m.key === medio)!
 
+    return (
+        <div style={{ maxWidth: '560px', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            {/* Header */}
+            <div>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>
+                    Nueva venta
+                </h1>
+                <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+                    {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+            </div>
+
+            {/* Éxito */}
             {exito && (
-                <div className="bg-green-900 border border-green-700 text-green-300 px-4 py-3 rounded-lg">
+                <div style={{
+                    background: '#4ADE8015',
+                    border: '1px solid #4ADE8030',
+                    color: '#4ADE80',
+                    padding: '0.875rem 1rem',
+                    borderRadius: '12px',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                }}>
                     ✓ Venta registrada correctamente
                 </div>
             )}
 
             {/* Buscador */}
-            <div className="relative">
+            <div style={{ position: 'relative' }}>
                 <input
                     type="text"
                     placeholder="Buscar producto..."
                     value={busqueda}
                     onChange={e => setBusqueda(e.target.value)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
+                    autoFocus
+                    style={{
+                        width: '100%',
+                        background: '#0F0F18',
+                        border: '1px solid #1E1E2E',
+                        borderRadius: '12px',
+                        padding: '0.875rem 1rem',
+                        color: '#E8E6E0',
+                        fontSize: '0.95rem',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
                 />
                 {busqueda && filtrados.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-gray-900 border border-gray-700 rounded-lg overflow-hidden shadow-xl">
+                    <div style={{
+                        position: 'absolute',
+                        zIndex: 10,
+                        width: '100%',
+                        marginTop: '0.5rem',
+                        background: '#0F0F18',
+                        border: '1px solid #1E1E2E',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        boxShadow: '0 20px 40px #00000050',
+                    }}>
                         {filtrados.slice(0, 6).map(p => (
                             <button
                                 key={p.id}
                                 onClick={() => agregarProducto(p)}
-                                className="w-full text-left px-4 py-2 hover:bg-gray-800 flex justify-between items-center"
+                                style={{
+                                    width: '100%',
+                                    textAlign: 'left',
+                                    padding: '0.75rem 1rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderBottom: '1px solid #1E1E2E',
+                                    cursor: 'pointer',
+                                    color: '#E8E6E0',
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = '#16161F')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             >
-                                <span className="text-white text-sm">{p.nombre}</span>
-                                <span className="text-amber-400 text-sm">{fmt(p.precio_venta)}</span>
+                                <span style={{ fontSize: '0.875rem' }}>{p.nombre}</span>
+                                <span style={{ fontSize: '0.875rem', color: '#F59E0B', fontWeight: 500 }}>{fmt(p.precio_venta)}</span>
                             </button>
                         ))}
                     </div>
@@ -159,52 +208,116 @@ export default function NuevaVenta() {
 
             {/* Carrito */}
             {carrito.length > 0 && (
-                <div className="bg-gray-900 rounded-xl border border-gray-800">
-                    {carrito.map(item => (
-                        <div key={item.producto.id} className="flex items-center gap-3 px-4 py-3 border-b border-gray-800 last:border-0">
-                            <div className="flex-1">
-                                <p className="text-sm text-white">{item.producto.nombre}</p>
-                                <p className="text-xs text-amber-400">{fmt(item.subtotal)}</p>
+                <div style={{
+                    background: '#0F0F18',
+                    border: '1px solid #1E1E2E',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                }}>
+                    {carrito.map((item, idx) => (
+                        <div key={item.producto.id} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                            padding: '0.875rem 1rem',
+                            borderBottom: idx < carrito.length - 1 ? '1px solid #1E1E2E' : 'none',
+                        }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: '0.875rem', color: '#E8E6E0', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {item.producto.nombre}
+                                </p>
+                                <p style={{ fontSize: '0.8rem', color: '#F59E0B', marginTop: '0.1rem' }}>
+                                    {fmt(item.subtotal)}
+                                </p>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => actualizarCantidad(item.producto.id, item.cantidad - 1)}
-                                    className="w-7 h-7 rounded bg-gray-800 text-white hover:bg-gray-700">−</button>
-                                <span className="text-white w-6 text-center text-sm">{item.cantidad}</span>
-                                <button onClick={() => actualizarCantidad(item.producto.id, item.cantidad + 1)}
-                                    className="w-7 h-7 rounded bg-gray-800 text-white hover:bg-gray-700">+</button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <button
+                                    onClick={() => actualizarCantidad(item.producto.id, item.cantidad - 1)}
+                                    style={{
+                                        width: '28px', height: '28px', borderRadius: '8px',
+                                        background: '#16161F', border: '1px solid #1E1E2E',
+                                        color: '#E8E6E0', fontSize: '1rem', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}
+                                >−</button>
+                                <span style={{ color: '#E8E6E0', fontSize: '0.9rem', width: '24px', textAlign: 'center', fontWeight: 600 }}>
+                                    {item.cantidad}
+                                </span>
+                                <button
+                                    onClick={() => actualizarCantidad(item.producto.id, item.cantidad + 1)}
+                                    style={{
+                                        width: '28px', height: '28px', borderRadius: '8px',
+                                        background: '#16161F', border: '1px solid #1E1E2E',
+                                        color: '#E8E6E0', fontSize: '1rem', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}
+                                >+</button>
                             </div>
                         </div>
                     ))}
-                    <div className="px-4 py-3 flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Total</span>
-                        <span className="text-green-400 text-xl font-semibold">{fmt(total)}</span>
+
+                    {/* Total */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '1rem',
+                        background: '#16161F',
+                        borderTop: '1px solid #1E1E2E',
+                    }}>
+                        <span style={{ fontSize: '0.8rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</span>
+                        <span style={{ fontSize: '1.75rem', fontWeight: 700, color: '#4ADE80', letterSpacing: '-0.03em' }}>{fmt(total)}</span>
                     </div>
                 </div>
             )}
 
             {/* Medio de pago */}
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                {MEDIOS.map(m => (
-                    <button
-                        key={m}
-                        onClick={() => setMedio(m)}
-                        className={`py-2 rounded-lg text-xs font-medium capitalize border transition-colors ${medio === m
-                            ? 'bg-amber-500 border-amber-500 text-black'
-                            : 'bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500'
-                            }`}
-                    >
-                        {m}
-                    </button>
-                ))}
+            <div>
+                <p style={{ fontSize: '0.72rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+                    Medio de pago
+                </p>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {MEDIOS.map(m => (
+                        <button
+                            key={m.key}
+                            onClick={() => setMedio(m.key)}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                borderRadius: '10px',
+                                fontSize: '0.8rem',
+                                fontWeight: medio === m.key ? 600 : 400,
+                                cursor: 'pointer',
+                                border: `1px solid ${medio === m.key ? m.color + '60' : '#1E1E2E'}`,
+                                background: medio === m.key ? m.color + '20' : '#0F0F18',
+                                color: medio === m.key ? m.color : '#3A3A4A',
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            {m.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Confirmar */}
+            {/* Botón confirmar */}
             <button
                 onClick={confirmar}
                 disabled={carrito.length === 0 || guardando}
-                className="w-full py-4 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-800 disabled:text-gray-600 text-black font-semibold rounded-xl transition-colors"
+                style={{
+                    width: '100%',
+                    padding: '1rem',
+                    background: carrito.length === 0 || guardando ? '#16161F' : '#F59E0B',
+                    color: carrito.length === 0 || guardando ? '#2A2A35' : '#0A0A0F',
+                    border: 'none',
+                    borderRadius: '14px',
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    cursor: carrito.length === 0 || guardando ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s',
+                    letterSpacing: '-0.01em',
+                }}
             >
-                {guardando ? 'Guardando...' : `Confirmar venta · ${fmt(total)}`}
+                {guardando ? 'Guardando...' : carrito.length === 0 ? 'Agregá productos' : `Confirmar · ${fmt(total)} · ${medioActual.label}`}
             </button>
         </div>
     )
