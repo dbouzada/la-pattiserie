@@ -12,6 +12,7 @@ const links = [
     { href: '/productos', label: 'Productos', icon: '▦' },
     { href: '/stock', label: 'Stock', icon: '◧' },
     { href: '/caja', label: 'Caja', icon: '◎' },
+    { href: '/clientes', label: 'Clientes', icon: '◑' },
 ]
 
 export default function NavBar() {
