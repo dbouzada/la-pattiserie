@@ -14,11 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>
+      <body style={{ margin: 0, padding: 0 }}>
         <NavBar />
-        <main className="max-w-5xl mx-auto px-4 py-8">
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   )
