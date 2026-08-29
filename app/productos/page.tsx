@@ -21,13 +21,10 @@ export default function Productos() {
     const [loading, setLoading] = useState(true)
     const [editando, setEditando] = useState<Producto | null>(null)
     const [guardando, setGuardando] = useState(false)
-    const [busqueda, setBusqueda] = useState('')
+    const [busqueda, setBusqueda] = useState(false)
 
     const cargar = async () => {
-        const { data } = await supabase
-            .from('productos')
-            .select('*')
-            .order('nombre')
+        const { data } = await supabase.from('productos').select('*').order('nombre')
         setProductos(data || [])
         setLoading(false)
     }
@@ -50,87 +47,161 @@ export default function Productos() {
     }
 
     const fmt = (n: number) =>
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n)
+        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+
+    const margen = (p: Producto) =>
+        (((p.precio_venta - p.costo_total) / p.precio_venta) * 100).toFixed(0)
 
     const filtrados = productos.filter(p =>
-        p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+        typeof busqueda === 'string'
+            ? p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+            : true
     )
 
-    const margen = (p: Producto) => {
-        const m = ((p.precio_venta - p.costo_total) / p.precio_venta) * 100
-        return m.toFixed(0)
-    }
-
-    if (loading) return <p className="text-gray-400">Cargando...</p>
+    if (loading) return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+            <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>
+        </div>
+    )
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold text-amber-400">Productos</h1>
-                <span className="text-gray-500 text-sm">{productos.length} productos</span>
+        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Productos</h1>
+                    <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>{productos.length} productos · {productos.filter(p => p.activo).length} activos</p>
+                </div>
+                <input
+                    type="text"
+                    placeholder="Buscar..."
+                    onChange={e => setBusqueda(e.target.value as any)}
+                    style={{
+                        background: '#0F0F18',
+                        border: '1px solid #1E1E2E',
+                        borderRadius: '10px',
+                        padding: '0.5rem 1rem',
+                        color: '#E8E6E0',
+                        fontSize: '0.85rem',
+                        outline: 'none',
+                        width: '220px',
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                />
             </div>
 
-            <input
-                type="text"
-                placeholder="Buscar..."
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
-            />
-
-            <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-                <table className="w-full text-sm">
+            {/* Tabla */}
+            <div style={{
+                background: '#0F0F18',
+                border: '1px solid #1E1E2E',
+                borderRadius: '16px',
+                overflow: 'hidden',
+            }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                     <thead>
-                        <tr className="text-gray-500 text-xs border-b border-gray-800">
-                            <th className="text-left px-4 py-3">Producto</th>
-                            <th className="text-right px-4 py-3">Costo</th>
-                            <th className="text-right px-4 py-3">Precio</th>
-                            <th className="text-right px-4 py-3">Margen</th>
-                            <th className="text-right px-4 py-3">Stock</th>
-                            <th className="text-center px-4 py-3">Estado</th>
-                            <th className="px-4 py-3"></th>
+                        <tr style={{ borderBottom: '1px solid #1E1E2E' }}>
+                            {['Producto', 'Costo', 'Precio', 'Margen', 'Stock', 'Estado', ''].map(h => (
+                                <th key={h} style={{
+                                    padding: '0.875rem 1rem',
+                                    textAlign: h === 'Producto' || h === '' ? 'left' : 'right',
+                                    fontSize: '0.72rem',
+                                    color: '#3A3A4A',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    fontWeight: 500,
+                                }}>{h}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
-                        {filtrados.map(p => (
-                            <tr key={p.id} className={`border-b border-gray-800 last:border-0 ${!p.activo ? 'opacity-40' : ''}`}>
-                                <td className="px-4 py-3 text-white">{p.nombre}</td>
-                                <td className="px-4 py-3 text-right text-gray-400">{fmt(p.costo_total)}</td>
-                                <td className="px-4 py-3 text-right text-amber-400">{fmt(p.precio_venta)}</td>
-                                <td className="px-4 py-3 text-right">
-                                    <span className={`${Number(margen(p)) > 40 ? 'text-green-400' : 'text-orange-400'}`}>
-                                        {margen(p)}%
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                    <span className={`${p.stock < 0 ? 'text-red-400' : p.stock < 10 ? 'text-orange-400' : 'text-gray-300'}`}>
-                                        {p.stock}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${p.activo ? 'bg-green-900 text-green-400' : 'bg-gray-800 text-gray-500'}`}>
-                                        {p.activo ? 'activo' : 'inactivo'}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                    <button
-                                        onClick={() => setEditando(p)}
-                                        className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-gray-800"
-                                    >
-                                        editar
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {productos.map((p, i) => {
+                            const m = Number(margen(p))
+                            return (
+                                <tr
+                                    key={p.id}
+                                    style={{
+                                        borderBottom: i < productos.length - 1 ? '1px solid #1E1E2E' : 'none',
+                                        opacity: p.activo ? 1 : 0.35,
+                                    }}
+                                >
+                                    <td style={{ padding: '0.875rem 1rem', color: '#E8E6E0', fontWeight: 500 }}>{p.nombre}</td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right', color: '#3A3A4A' }}>{fmt(p.costo_total)}</td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right', color: '#F59E0B', fontWeight: 600 }}>{fmt(p.precio_venta)}</td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                        <span style={{ color: m >= 50 ? '#4ADE80' : m >= 35 ? '#FBBF24' : '#F87171', fontWeight: 500 }}>
+                                            {m}%
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                        <span style={{ color: p.stock <= 0 ? '#F87171' : p.stock < 10 ? '#FBBF24' : '#6B6B80', fontWeight: 500 }}>
+                                            {p.stock}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                        <span style={{
+                                            fontSize: '0.72rem',
+                                            padding: '0.2rem 0.6rem',
+                                            borderRadius: '6px',
+                                            background: p.activo ? '#4ADE8015' : '#1E1E2E',
+                                            color: p.activo ? '#4ADE80' : '#3A3A4A',
+                                            fontWeight: 500,
+                                        }}>
+                                            {p.activo ? 'activo' : 'inactivo'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                        <button
+                                            onClick={() => setEditando(p)}
+                                            style={{
+                                                background: 'transparent',
+                                                border: '1px solid #1E1E2E',
+                                                borderRadius: '8px',
+                                                padding: '0.3rem 0.75rem',
+                                                color: '#6B6B80',
+                                                fontSize: '0.78rem',
+                                                cursor: 'pointer',
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#F59E0B50'; e.currentTarget.style.color = '#F59E0B' }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#6B6B80' }}
+                                        >
+                                            editar
+                                        </button>
+                                    </td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </table>
             </div>
 
-            {/* Modal edición */}
+            {/* Modal */}
             {editando && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-900 rounded-xl border border-gray-700 p-6 w-full max-w-md space-y-4">
-                        <h2 className="text-lg font-medium text-white">{editando.nombre}</h2>
+                <div style={{
+                    position: 'fixed', inset: 0,
+                    background: '#00000080',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 50, padding: '1rem',
+                    backdropFilter: 'blur(4px)',
+                }}>
+                    <div style={{
+                        background: '#0F0F18',
+                        border: '1px solid #1E1E2E',
+                        borderRadius: '20px',
+                        padding: '2rem',
+                        width: '100%',
+                        maxWidth: '420px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem',
+                    }}>
+                        <div>
+                            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#F0EDE6', letterSpacing: '-0.02em' }}>
+                                {editando.nombre}
+                            </h2>
+                            <p style={{ fontSize: '0.78rem', color: '#3A3A4A', marginTop: '0.2rem' }}>Editando precio y costos</p>
+                        </div>
 
                         {[
                             { label: 'Precio de venta', key: 'precio_venta' },
@@ -139,37 +210,85 @@ export default function Productos() {
                             { label: 'Precio por kg', key: 'precio_kg' },
                         ].map(({ label, key }) => (
                             <div key={key}>
-                                <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+                                <label style={{ fontSize: '0.72rem', color: '#3A3A4A', display: 'block', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                    {label}
+                                </label>
                                 <input
                                     type="number"
                                     value={(editando as any)[key] || ''}
                                     onChange={e => setEditando({ ...editando, [key]: Number(e.target.value) })}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                                    style={{
+                                        width: '100%',
+                                        background: '#16161F',
+                                        border: '1px solid #1E1E2E',
+                                        borderRadius: '10px',
+                                        padding: '0.75rem 1rem',
+                                        color: '#E8E6E0',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box',
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
                                 />
                             </div>
                         ))}
 
-                        <div className="flex items-center gap-3">
-                            <label className="text-xs text-gray-500">Activo</label>
+                        {/* Toggle activo */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.85rem', color: '#6B6B80' }}>Producto activo</span>
                             <button
                                 onClick={() => setEditando({ ...editando, activo: !editando.activo })}
-                                className={`w-10 h-6 rounded-full transition-colors ${editando.activo ? 'bg-amber-500' : 'bg-gray-700'}`}
+                                style={{
+                                    width: '44px', height: '24px',
+                                    borderRadius: '12px',
+                                    background: editando.activo ? '#F59E0B' : '#1E1E2E',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    transition: 'background 0.2s',
+                                }}
                             >
-                                <span className={`block w-4 h-4 bg-white rounded-full mx-1 transition-transform ${editando.activo ? 'translate-x-4' : ''}`} />
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '3px',
+                                    left: editando.activo ? '22px' : '3px',
+                                    width: '18px', height: '18px',
+                                    background: '#fff',
+                                    borderRadius: '50%',
+                                    transition: 'left 0.2s',
+                                }} />
                             </button>
                         </div>
 
-                        <div className="flex gap-3 pt-2">
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                             <button
                                 onClick={() => setEditando(null)}
-                                className="flex-1 py-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white text-sm"
+                                style={{
+                                    flex: 1, padding: '0.75rem',
+                                    background: 'transparent',
+                                    border: '1px solid #1E1E2E',
+                                    borderRadius: '10px',
+                                    color: '#6B6B80',
+                                    fontSize: '0.875rem',
+                                    cursor: 'pointer',
+                                }}
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={guardar}
                                 disabled={guardando}
-                                className="flex-1 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-medium text-sm"
+                                style={{
+                                    flex: 1, padding: '0.75rem',
+                                    background: '#F59E0B',
+                                    border: 'none',
+                                    borderRadius: '10px',
+                                    color: '#0A0A0F',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
                             >
                                 {guardando ? 'Guardando...' : 'Guardar'}
                             </button>
