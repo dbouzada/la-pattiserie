@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import jsPDF from 'jspdf'
 
 export default function Caja() {
     const [loading, setLoading] = useState(true)
@@ -33,6 +34,19 @@ export default function Caja() {
 
     useEffect(() => { cargar() }, [])
 
+    const fmt = (n: number) =>
+        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+
+    const total = Object.values(totales).reduce((a, b) => a + b, 0)
+
+    const medios = [
+        { label: 'Efectivo', value: totales.efectivo, color: '#FBBF24' },
+        { label: 'Tarjeta', value: totales.tarjeta, color: '#60A5FA' },
+        { label: 'Transferencia', value: totales.transferencia, color: '#A78BFA' },
+        { label: 'Mercado Pago', value: totales.mercadopago, color: '#34D399' },
+        { label: 'Pedidos Ya', value: totales.pedidosya, color: '#F87171' },
+    ]
+
     const guardar = async () => {
         setGuardando(true)
         await supabase.from('arqueo_caja').upsert({
@@ -49,18 +63,76 @@ export default function Caja() {
         setGuardando(false)
     }
 
-    const fmt = (n: number) =>
-        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+    const descargarPDF = () => {
+        const doc = new jsPDF()
+        const fechaFormateada = new Date().toLocaleDateString('es-AR').replace(/\//g, '_')
+        const nombreArchivo = `Caja_${fechaFormateada}.pdf`
 
-    const total = Object.values(totales).reduce((a, b) => a + b, 0)
+        doc.setFontSize(20)
+        doc.setTextColor(40, 40, 40)
+        doc.text('La Pattiserie', 105, 20, { align: 'center' })
 
-    const medios = [
-        { label: 'Efectivo', value: totales.efectivo, color: '#FBBF24' },
-        { label: 'Tarjeta', value: totales.tarjeta, color: '#60A5FA' },
-        { label: 'Transferencia', value: totales.transferencia, color: '#A78BFA' },
-        { label: 'Mercado Pago', value: totales.mercadopago, color: '#34D399' },
-        { label: 'Pedidos Ya', value: totales.pedidosya, color: '#F87171' },
-    ]
+        doc.setFontSize(12)
+        doc.setTextColor(100, 100, 100)
+        doc.text(
+            `Arqueo de caja — ${new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
+            105, 30, { align: 'center' }
+        )
+
+        doc.setDrawColor(230, 230, 230)
+        doc.line(20, 36, 190, 36)
+
+        doc.setFontSize(28)
+        doc.setTextColor(40, 167, 69)
+        doc.text(fmt(total), 105, 52, { align: 'center' })
+
+        doc.setFontSize(10)
+        doc.setTextColor(150, 150, 150)
+        doc.text('TOTAL DEL DÍA', 105, 60, { align: 'center' })
+
+        doc.line(20, 66, 190, 66)
+
+        let y = 78
+        doc.setFontSize(11)
+        medios.forEach(m => {
+            if (m.value > 0) {
+                doc.setTextColor(60, 60, 60)
+                doc.text(m.label, 30, y)
+                doc.setFont('helvetica', 'bold')
+                doc.setTextColor(40, 40, 40)
+                doc.text(fmt(m.value), 180, y, { align: 'right' })
+                doc.setFont('helvetica', 'normal')
+                if (total > 0) {
+                    doc.setTextColor(150, 150, 150)
+                    doc.setFontSize(9)
+                    doc.text(`${((m.value / total) * 100).toFixed(0)}%`, 140, y)
+                    doc.setFontSize(11)
+                }
+                y += 12
+            }
+        })
+
+        doc.setDrawColor(230, 230, 230)
+        doc.line(20, y, 190, y)
+        y += 12
+
+        if (notas) {
+            doc.setFontSize(10)
+            doc.setTextColor(100, 100, 100)
+            doc.text('Notas:', 30, y)
+            y += 8
+            doc.setTextColor(60, 60, 60)
+            const lineas = doc.splitTextToSize(notas, 150)
+            doc.text(lineas, 30, y)
+            y += lineas.length * 7 + 8
+        }
+
+        doc.setFontSize(8)
+        doc.setTextColor(180, 180, 180)
+        doc.text(`Generado el ${new Date().toLocaleString('es-AR')}`, 105, 280, { align: 'center' })
+
+        doc.save(nombreArchivo)
+    }
 
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
@@ -202,28 +274,50 @@ export default function Caja() {
                 />
             </div>
 
-            {/* Botón */}
-            <button
-                onClick={guardar}
-                disabled={guardando}
-                style={{
-                    width: '100%',
-                    padding: '1rem',
-                    background: guardando ? '#16161F' : '#F59E0B',
-                    color: guardando ? '#2A2A35' : '#0A0A0F',
-                    border: 'none',
-                    borderRadius: '14px',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    cursor: guardando ? 'not-allowed' : 'pointer',
-                    letterSpacing: '-0.01em',
-                    transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { if (!guardando) (e.currentTarget.style.background = '#FBBF24') }}
-                onMouseLeave={e => { if (!guardando) (e.currentTarget.style.background = '#F59E0B') }}
-            >
-                {guardando ? 'Guardando...' : 'Guardar arqueo del día'}
-            </button>
+            {/* Botones */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                    onClick={guardar}
+                    disabled={guardando}
+                    style={{
+                        flex: 1,
+                        padding: '1rem',
+                        background: guardando ? '#16161F' : '#F59E0B',
+                        color: guardando ? '#2A2A35' : '#0A0A0F',
+                        border: 'none',
+                        borderRadius: '14px',
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        cursor: guardando ? 'not-allowed' : 'pointer',
+                        letterSpacing: '-0.01em',
+                        transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { if (!guardando) (e.currentTarget.style.background = '#FBBF24') }}
+                    onMouseLeave={e => { if (!guardando) (e.currentTarget.style.background = '#F59E0B') }}
+                >
+                    {guardando ? 'Guardando...' : 'Guardar arqueo'}
+                </button>
+
+                <button
+                    onClick={descargarPDF}
+                    style={{
+                        padding: '1rem 1.5rem',
+                        background: '#0F0F18',
+                        color: '#E8E6E0',
+                        border: '1px solid #1E1E2E',
+                        borderRadius: '14px',
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#F59E0B50'; e.currentTarget.style.color = '#F59E0B' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#E8E6E0' }}
+                >
+                    ↓ PDF
+                </button>
+            </div>
         </div>
     )
 }
