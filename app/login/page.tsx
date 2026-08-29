@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -9,7 +9,22 @@ export default function Login() {
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const [tema, setTema] = useState<'oscuro' | 'claro'>('oscuro')
     const router = useRouter()
+
+    useEffect(() => {
+        const guardado = localStorage.getItem('tema') as 'oscuro' | 'claro'
+        if (guardado) setTema(guardado)
+    }, [])
+
+    const c = {
+        bg: tema === 'oscuro' ? '#0A0A0F' : '#F5F4F0',
+        card: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
+        border: tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0',
+        text: tema === 'oscuro' ? '#F0EDE6' : '#1A1A1F',
+        muted: tema === 'oscuro' ? '#4A4A5A' : '#9B9B9B',
+        input: tema === 'oscuro' ? '#16161F' : '#F5F4F0',
+    }
 
     const login = async () => {
         setLoading(true)
@@ -24,76 +39,78 @@ export default function Login() {
         router.refresh()
     }
 
+    const toggleTema = () => {
+        const nuevo = tema === 'oscuro' ? 'claro' : 'oscuro'
+        setTema(nuevo)
+        localStorage.setItem('tema', nuevo)
+    }
+
     return (
         <div style={{
             minHeight: '100vh',
-            background: '#0A0A0F',
+            background: c.bg,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '1rem',
+            transition: 'background 0.2s',
         }}>
-            {/* Fondo con gradiente sutil */}
+            {/* Fondo sutil */}
             <div style={{
-                position: 'fixed',
-                inset: 0,
+                position: 'fixed', inset: 0,
                 background: 'radial-gradient(ellipse at 50% 0%, #F59E0B08 0%, transparent 70%)',
                 pointerEvents: 'none',
             }} />
 
-            <div style={{
-                width: '100%',
-                maxWidth: '380px',
-                position: 'relative',
-            }}>
-                {/* Card */}
+            {/* Toggle tema */}
+            <button
+                onClick={toggleTema}
+                style={{
+                    position: 'fixed', top: '1rem', right: '1rem',
+                    background: c.card, border: `1px solid ${c.border}`,
+                    borderRadius: '8px', padding: '0.375rem 0.75rem',
+                    fontSize: '0.85rem', color: c.muted,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                }}
+            >
+                {tema === 'oscuro' ? '☀️' : '🌙'}
+            </button>
+
+            <div style={{ width: '100%', maxWidth: '380px', position: 'relative' }}>
                 <div style={{
-                    background: '#0F0F18',
-                    border: '1px solid #1E1E2E',
+                    background: c.card,
+                    border: `1px solid ${c.border}`,
                     borderRadius: '20px',
                     padding: '2.5rem',
-                    boxShadow: '0 25px 60px #00000060',
+                    boxShadow: tema === 'oscuro' ? '0 25px 60px #00000060' : '0 25px 60px #00000015',
                 }}>
                     {/* Header */}
                     <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                         <div style={{
-                            width: '64px',
-                            height: '64px',
+                            width: '64px', height: '64px',
                             background: '#F59E0B15',
                             border: '1px solid #F59E0B30',
                             borderRadius: '16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '2rem',
-                            margin: '0 auto 1rem',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '2rem', margin: '0 auto 1rem',
                         }}>
                             🥐
                         </div>
                         <h1 style={{
-                            fontSize: '1.25rem',
-                            fontWeight: 600,
-                            color: '#F0EDE6',
-                            letterSpacing: '-0.02em',
-                            marginBottom: '0.25rem',
+                            fontSize: '1.25rem', fontWeight: 600, color: c.text,
+                            letterSpacing: '-0.02em', marginBottom: '0.25rem',
                         }}>
                             La Pattiserie
                         </h1>
-                        <p style={{ fontSize: '0.8rem', color: '#4A4A5A' }}>
-                            Sistema de gestión
-                        </p>
+                        <p style={{ fontSize: '0.8rem', color: c.muted }}>Sistema de gestión</p>
                     </div>
 
                     {/* Error */}
                     {error && (
                         <div style={{
-                            background: '#FF444415',
-                            border: '1px solid #FF444430',
-                            color: '#FF8080',
-                            padding: '0.75rem 1rem',
-                            borderRadius: '10px',
-                            fontSize: '0.8rem',
-                            marginBottom: '1rem',
+                            background: '#FF444415', border: '1px solid #FF444430',
+                            color: '#FF8080', padding: '0.75rem 1rem',
+                            borderRadius: '10px', fontSize: '0.8rem', marginBottom: '1rem',
                         }}>
                             {error}
                         </div>
@@ -103,12 +120,8 @@ export default function Login() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <div>
                             <label style={{
-                                fontSize: '0.72rem',
-                                color: '#4A4A5A',
-                                display: 'block',
-                                marginBottom: '0.375rem',
-                                letterSpacing: '0.05em',
-                                textTransform: 'uppercase',
+                                fontSize: '0.72rem', color: c.muted, display: 'block',
+                                marginBottom: '0.375rem', letterSpacing: '0.05em', textTransform: 'uppercase',
                             }}>
                                 Email
                             </label>
@@ -119,29 +132,21 @@ export default function Login() {
                                 onKeyDown={e => e.key === 'Enter' && login()}
                                 placeholder="tu@email.com"
                                 style={{
-                                    width: '100%',
-                                    background: '#16161F',
-                                    border: '1px solid #1E1E2E',
-                                    borderRadius: '10px',
-                                    padding: '0.75rem 1rem',
-                                    color: '#E8E6E0',
-                                    fontSize: '0.9rem',
-                                    outline: 'none',
-                                    transition: 'border-color 0.15s',
+                                    width: '100%', background: c.input,
+                                    border: `1px solid ${c.border}`, borderRadius: '10px',
+                                    padding: '0.75rem 1rem', color: c.text,
+                                    fontSize: '0.9rem', outline: 'none',
+                                    transition: 'border-color 0.15s', boxSizing: 'border-box',
                                 }}
                                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                                onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                                onBlur={e => e.target.style.borderColor = c.border}
                             />
                         </div>
 
                         <div>
                             <label style={{
-                                fontSize: '0.72rem',
-                                color: '#4A4A5A',
-                                display: 'block',
-                                marginBottom: '0.375rem',
-                                letterSpacing: '0.05em',
-                                textTransform: 'uppercase',
+                                fontSize: '0.72rem', color: c.muted, display: 'block',
+                                marginBottom: '0.375rem', letterSpacing: '0.05em', textTransform: 'uppercase',
                             }}>
                                 Contraseña
                             </label>
@@ -152,18 +157,14 @@ export default function Login() {
                                 onKeyDown={e => e.key === 'Enter' && login()}
                                 placeholder="••••••••"
                                 style={{
-                                    width: '100%',
-                                    background: '#16161F',
-                                    border: '1px solid #1E1E2E',
-                                    borderRadius: '10px',
-                                    padding: '0.75rem 1rem',
-                                    color: '#E8E6E0',
-                                    fontSize: '0.9rem',
-                                    outline: 'none',
-                                    transition: 'border-color 0.15s',
+                                    width: '100%', background: c.input,
+                                    border: `1px solid ${c.border}`, borderRadius: '10px',
+                                    padding: '0.75rem 1rem', color: c.text,
+                                    fontSize: '0.9rem', outline: 'none',
+                                    transition: 'border-color 0.15s', boxSizing: 'border-box',
                                 }}
                                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                                onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                                onBlur={e => e.target.style.borderColor = c.border}
                             />
                         </div>
                     </div>
@@ -173,32 +174,24 @@ export default function Login() {
                         onClick={login}
                         disabled={loading}
                         style={{
-                            width: '100%',
-                            marginTop: '1.5rem',
-                            padding: '0.875rem',
-                            background: loading ? '#2A2A35' : '#F59E0B',
-                            color: loading ? '#4A4A5A' : '#0A0A0F',
-                            border: 'none',
-                            borderRadius: '10px',
-                            fontSize: '0.9rem',
-                            fontWeight: 600,
+                            width: '100%', marginTop: '1.5rem', padding: '0.875rem',
+                            background: loading ? c.input : '#F59E0B',
+                            color: loading ? c.muted : '#0A0A0F',
+                            border: 'none', borderRadius: '10px',
+                            fontSize: '0.9rem', fontWeight: 600,
                             cursor: loading ? 'not-allowed' : 'pointer',
-                            transition: 'all 0.15s',
-                            letterSpacing: '-0.01em',
+                            transition: 'all 0.15s', letterSpacing: '-0.01em',
                         }}
-                        onMouseEnter={e => { if (!loading) (e.target as HTMLButtonElement).style.background = '#FBBF24' }}
-                        onMouseLeave={e => { if (!loading) (e.target as HTMLButtonElement).style.background = '#F59E0B' }}
+                        onMouseEnter={e => { if (!loading) (e.currentTarget.style.background = '#FBBF24') }}
+                        onMouseLeave={e => { if (!loading) (e.currentTarget.style.background = '#F59E0B') }}
                     >
                         {loading ? 'Ingresando...' : 'Ingresar →'}
                     </button>
                 </div>
 
-                {/* Footer */}
                 <p style={{
-                    textAlign: 'center',
-                    marginTop: '1.5rem',
-                    fontSize: '0.72rem',
-                    color: '#2A2A35',
+                    textAlign: 'center', marginTop: '1.5rem',
+                    fontSize: '0.72rem', color: c.muted,
                 }}>
                     La Pattiserie © {new Date().getFullYear()}
                 </p>
