@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useTema } from '@/lib/theme'
 import jsPDF from 'jspdf'
 
 export default function Caja() {
+    const { tema } = useTema()
     const [loading, setLoading] = useState(true)
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
@@ -13,11 +15,22 @@ export default function Caja() {
         efectivo: 0, tarjeta: 0, transferencia: 0, mercadopago: 0, pedidosya: 0,
     })
 
+    const c = {
+        card: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
+        card2: tema === 'oscuro' ? '#16161F' : '#F0EFE9',
+        border: tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0',
+        text: tema === 'oscuro' ? '#F0EDE6' : '#1A1A1F',
+        muted: tema === 'oscuro' ? '#3A3A4A' : '#9B9B9B',
+        muted2: tema === 'oscuro' ? '#2A2A35' : '#C5C4C0',
+        input: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
+    }
+
     const hoy = new Date().toISOString().split('T')[0]
 
     const cargar = async () => {
         const { data: ventas } = await supabase
-            .from('ventas').select('medio_pago, total').eq('fecha', hoy)
+            .from('ventas').select('medio_pago, total')
+            .eq('fecha', hoy).eq('anulada', false)
 
         const { data: arqueo } = await supabase
             .from('arqueo_caja').select('notas').eq('fecha', hoy).single()
@@ -124,7 +137,6 @@ export default function Caja() {
             doc.setTextColor(60, 60, 60)
             const lineas = doc.splitTextToSize(notas, 150)
             doc.text(lineas, 30, y)
-            y += lineas.length * 7 + 8
         }
 
         doc.setFontSize(8)
@@ -136,7 +148,7 @@ export default function Caja() {
 
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-            <div style={{ color: '#2A2A35', fontSize: '0.9rem' }}>Cargando...</div>
+            <div style={{ color: c.muted2, fontSize: '0.9rem' }}>Cargando...</div>
         </div>
     )
 
@@ -145,21 +157,17 @@ export default function Caja() {
 
             {/* Header */}
             <div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F0EDE6', letterSpacing: '-0.03em' }}>Caja del día</h1>
-                <p style={{ fontSize: '0.8rem', color: '#3A3A4A', marginTop: '0.2rem' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Caja del día</h1>
+                <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
                     {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
             </div>
 
             {exito && (
                 <div style={{
-                    background: '#4ADE8015',
-                    border: '1px solid #4ADE8030',
-                    color: '#4ADE80',
-                    padding: '0.875rem 1rem',
-                    borderRadius: '12px',
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
+                    background: '#4ADE8015', border: '1px solid #4ADE8030',
+                    color: '#4ADE80', padding: '0.875rem 1rem',
+                    borderRadius: '12px', fontSize: '0.85rem', fontWeight: 500,
                 }}>
                     ✓ Arqueo guardado correctamente
                 </div>
@@ -167,13 +175,10 @@ export default function Caja() {
 
             {/* Total grande */}
             <div style={{
-                background: '#4ADE8010',
-                border: '1px solid #4ADE8025',
-                borderRadius: '20px',
-                padding: '2rem',
-                textAlign: 'center',
+                background: '#4ADE8010', border: '1px solid #4ADE8025',
+                borderRadius: '20px', padding: '2rem', textAlign: 'center',
             }}>
-                <p style={{ fontSize: '0.72rem', color: '#3A3A4A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+                <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
                     Total del día
                 </p>
                 <p style={{ fontSize: '3rem', fontWeight: 800, color: '#4ADE80', letterSpacing: '-0.04em', lineHeight: 1 }}>
@@ -182,41 +187,29 @@ export default function Caja() {
             </div>
 
             {/* Desglose */}
-            <div style={{
-                background: '#0F0F18',
-                border: '1px solid #1E1E2E',
-                borderRadius: '16px',
-                overflow: 'hidden',
-            }}>
+            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', overflow: 'hidden' }}>
                 {medios.map((m, i) => (
                     <div key={m.label} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '1rem 1.25rem',
-                        borderBottom: i < medios.length - 1 ? '1px solid #1E1E2E' : 'none',
+                        borderBottom: i < medios.length - 1 ? `1px solid ${c.border}` : 'none',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div style={{
-                                width: '8px', height: '8px',
-                                borderRadius: '50%',
-                                background: m.value > 0 ? m.color : '#2A2A35',
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: m.value > 0 ? m.color : c.muted2,
                             }} />
-                            <span style={{ fontSize: '0.875rem', color: m.value > 0 ? '#E8E6E0' : '#3A3A4A' }}>
+                            <span style={{ fontSize: '0.875rem', color: m.value > 0 ? c.text : c.muted }}>
                                 {m.label}
                             </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             {total > 0 && m.value > 0 && (
-                                <span style={{ fontSize: '0.75rem', color: '#3A3A4A' }}>
+                                <span style={{ fontSize: '0.75rem', color: c.muted }}>
                                     {((m.value / total) * 100).toFixed(0)}%
                                 </span>
                             )}
-                            <span style={{
-                                fontSize: '0.95rem',
-                                fontWeight: 600,
-                                color: m.value > 0 ? m.color : '#2A2A35',
-                            }}>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: m.value > 0 ? m.color : c.muted2 }}>
                                 {fmt(m.value)}
                             </span>
                         </div>
@@ -231,9 +224,7 @@ export default function Caja() {
                         <div key={m.label} style={{
                             height: '100%',
                             width: `${(m.value / total) * 100}%`,
-                            background: m.color,
-                            borderRadius: '6px',
-                            transition: 'width 0.5s ease',
+                            background: m.color, borderRadius: '6px',
                         }} />
                     ))}
                 </div>
@@ -242,12 +233,8 @@ export default function Caja() {
             {/* Notas */}
             <div>
                 <label style={{
-                    fontSize: '0.72rem',
-                    color: '#3A3A4A',
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
+                    fontSize: '0.72rem', color: c.muted, display: 'block',
+                    marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em',
                 }}>
                     Notas del día
                 </label>
@@ -257,20 +244,14 @@ export default function Caja() {
                     rows={3}
                     placeholder="Observaciones, gastos, novedades..."
                     style={{
-                        width: '100%',
-                        background: '#0F0F18',
-                        border: '1px solid #1E1E2E',
-                        borderRadius: '12px',
-                        padding: '0.875rem 1rem',
-                        color: '#E8E6E0',
-                        fontSize: '0.875rem',
-                        outline: 'none',
-                        resize: 'none',
-                        boxSizing: 'border-box',
-                        fontFamily: 'inherit',
+                        width: '100%', background: c.input,
+                        border: `1px solid ${c.border}`, borderRadius: '12px',
+                        padding: '0.875rem 1rem', color: c.text,
+                        fontSize: '0.875rem', outline: 'none', resize: 'none',
+                        boxSizing: 'border-box', fontFamily: 'inherit',
                     }}
                     onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                    onBlur={e => e.target.style.borderColor = '#1E1E2E'}
+                    onBlur={e => e.target.style.borderColor = c.border}
                 />
             </div>
 
@@ -280,17 +261,13 @@ export default function Caja() {
                     onClick={guardar}
                     disabled={guardando}
                     style={{
-                        flex: 1,
-                        padding: '1rem',
-                        background: guardando ? '#16161F' : '#F59E0B',
-                        color: guardando ? '#2A2A35' : '#0A0A0F',
-                        border: 'none',
-                        borderRadius: '14px',
-                        fontSize: '1rem',
-                        fontWeight: 700,
+                        flex: 1, padding: '1rem',
+                        background: guardando ? c.card2 : '#F59E0B',
+                        color: guardando ? c.muted2 : '#0A0A0F',
+                        border: 'none', borderRadius: '14px',
+                        fontSize: '1rem', fontWeight: 700,
                         cursor: guardando ? 'not-allowed' : 'pointer',
-                        letterSpacing: '-0.01em',
-                        transition: 'all 0.15s',
+                        letterSpacing: '-0.01em', transition: 'all 0.15s',
                     }}
                     onMouseEnter={e => { if (!guardando) (e.currentTarget.style.background = '#FBBF24') }}
                     onMouseLeave={e => { if (!guardando) (e.currentTarget.style.background = '#F59E0B') }}
@@ -301,19 +278,13 @@ export default function Caja() {
                 <button
                     onClick={descargarPDF}
                     style={{
-                        padding: '1rem 1.5rem',
-                        background: '#0F0F18',
-                        color: '#E8E6E0',
-                        border: '1px solid #1E1E2E',
-                        borderRadius: '14px',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                        whiteSpace: 'nowrap',
+                        padding: '1rem 1.5rem', background: c.card,
+                        color: c.text, border: `1px solid ${c.border}`,
+                        borderRadius: '14px', fontSize: '1rem', fontWeight: 600,
+                        cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#F59E0B50'; e.currentTarget.style.color = '#F59E0B' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1E1E2E'; e.currentTarget.style.color = '#E8E6E0' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.text }}
                 >
                     ↓ PDF
                 </button>
