@@ -19,12 +19,14 @@ export default function Stock() {
     const [busqueda, setBusqueda] = useState('')
 
     const c = {
-        card: tema === 'oscuro' ? '#0F0F18' : '#FFFFFF',
-        card2: tema === 'oscuro' ? '#16161F' : '#F0EFE9',
-        border: tema === 'oscuro' ? '#1E1E2E' : '#E5E4E0',
-        text: tema === 'oscuro' ? '#F0EDE6' : '#1A1A1F',
-        muted: tema === 'oscuro' ? '#3A3A4A' : '#9B9B9B',
-        muted2: tema === 'oscuro' ? '#2A2A35' : '#C5C4C0',
+        bg: tema === 'oscuro' ? '#0F1A09' : '#F7F5F0',
+        card: tema === 'oscuro' ? '#162210' : '#FFFFFF',
+        card2: tema === 'oscuro' ? '#1E2E14' : '#F0EDE4',
+        border: tema === 'oscuro' ? '#2A4A1A' : '#E5E0D8',
+        text: tema === 'oscuro' ? '#E8E4D8' : '#1A1A14',
+        muted: tema === 'oscuro' ? '#8BAA6E' : '#9B9B8A',
+        muted2: tema === 'oscuro' ? '#4A6A3A' : '#C5C0B0',
+        input: tema === 'oscuro' ? '#1E2E14' : '#F7F5F0',
     }
 
     const cargar = async () => {
