@@ -34,26 +34,20 @@ export default function Confirm() {
 
     return (
         <div style={{
-            minHeight: '100vh',
-            background: '#0F1A09',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
+            minHeight: '100vh', background: '#0F1A09',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'center', padding: '1rem',
         }}>
             <div style={{
-                background: '#162210',
-                border: '1px solid #2A4A1A',
-                borderRadius: '20px',
-                padding: '2.5rem',
-                width: '100%',
-                maxWidth: '380px',
+                background: '#162210', border: '1px solid #2A4A1A',
+                borderRadius: '20px', padding: '2.5rem',
+                width: '100%', maxWidth: '380px',
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                     <img
                         src="/logo.png"
                         alt="La Pâtisserie"
-                        style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', margin: '0 auto 1rem' }}
+                        style={{ width: '80px', height: '80px', borderRadius: '16px', objectFit: 'cover', margin: '0 auto 1rem', display: 'block' }}
                     />
                     <h1 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#E8E4D8', marginBottom: '0.25rem' }}>
                         Elegí tu contraseña
@@ -99,7 +93,7 @@ export default function Confirm() {
                                     width: '100%', background: '#1E2E14',
                                     border: '1px solid #2A4A1A', borderRadius: '10px',
                                     padding: '0.75rem 1rem', color: '#E8E4D8',
-                                    fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box',
+                                    fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' as const,
                                 }}
                                 onFocus={e => e.target.style.borderColor = '#C9A96E50'}
                                 onBlur={e => e.target.style.borderColor = '#2A4A1A'}
@@ -122,7 +116,7 @@ export default function Confirm() {
                                     width: '100%', background: '#1E2E14',
                                     border: '1px solid #2A4A1A', borderRadius: '10px',
                                     padding: '0.75rem 1rem', color: '#E8E4D8',
-                                    fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box',
+                                    fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' as const,
                                 }}
                                 onFocus={e => e.target.style.borderColor = '#C9A96E50'}
                                 onBlur={e => e.target.style.borderColor = '#2A4A1A'}
@@ -137,3 +131,16 @@ export default function Confirm() {
                                 background: loading ? '#1E2E14' : '#C9A96E',
                                 color: loading ? '#4A6A3A' : '#0F1A09',
                                 border: 'none', borderRadius: '10px',
+                                fontSize: '0.9rem', fontWeight: 600,
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                marginTop: '0.5rem',
+                            }}
+                        >
+                            {loading ? 'Guardando...' : 'Confirmar contraseña →'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+}
