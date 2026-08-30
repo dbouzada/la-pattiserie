@@ -88,21 +88,23 @@ export default function Login() {
                 }}>
                     {/* Header */}
                     <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                        <div style={{
-                            width: '64px', height: '64px',
-                            background: '#F59E0B15',
-                            border: '1px solid #F59E0B30',
-                            borderRadius: '16px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '2rem', margin: '0 auto 1rem',
-                        }}>
-                            🥐
+                        <div style={{ margin: '0 auto 1rem', width: '100px', height: '100px' }}>
+                            <img
+                                src="/logo.png"
+                                alt="La Pâtisserie"
+                                style={{
+                                    width: '100px',
+                                    height: '100px',
+                                    borderRadius: '20px',
+                                    objectFit: 'cover',
+                                }}
+                            />
                         </div>
                         <h1 style={{
                             fontSize: '1.25rem', fontWeight: 600, color: c.text,
                             letterSpacing: '-0.02em', marginBottom: '0.25rem',
                         }}>
-                            La Pattiserie
+                            La Pâtisserie
                         </h1>
                         <p style={{ fontSize: '0.8rem', color: c.muted }}>Sistema de gestión</p>
                     </div>
