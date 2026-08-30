@@ -18,14 +18,14 @@ export default function Login() {
     }, [])
 
     const c = {
-        bg: tema === 'oscuro' ? '#0F1A09' : '#F7F5F0',
-        card: tema === 'oscuro' ? '#162210' : '#FFFFFF',
-        card2: tema === 'oscuro' ? '#1E2E14' : '#F0EDE4',
-        border: tema === 'oscuro' ? '#2A4A1A' : '#E5E0D8',
+        bg: tema === 'oscuro' ? '#0F1A09' : '#EDE8DF',
+        card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
+        card2: tema === 'oscuro' ? '#1E2E14' : '#EDE8DF',
+        border: tema === 'oscuro' ? '#2A4A1A' : '#C8BFA8',
         text: tema === 'oscuro' ? '#E8E4D8' : '#1A1A14',
-        muted: tema === 'oscuro' ? '#8BAA6E' : '#9B9B8A',
-        muted2: tema === 'oscuro' ? '#4A6A3A' : '#C5C0B0',
-        input: tema === 'oscuro' ? '#1E2E14' : '#F7F5F0',
+        muted: tema === 'oscuro' ? '#8BAA6E' : '#6B6550',
+        muted2: tema === 'oscuro' ? '#4A6A3A' : '#9B9280',
+        input: tema === 'oscuro' ? '#1E2E14' : '#F7F3EC',
     }
 
     const login = async () => {

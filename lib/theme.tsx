@@ -27,7 +27,7 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
         <TemaContext.Provider value={{ tema, toggleTema }}>
             <div data-tema={tema} style={{
                 minHeight: '100vh',
-                background: tema === 'oscuro' ? '#0F1A09' : '#F7F5F0',
+                background: tema === 'oscuro' ? '#0F1A09' : '#EDE8DF',
                 color: tema === 'oscuro' ? '#E8E4D8' : '#1A1A14',
                 transition: 'background 0.2s, color 0.2s',
             }}>
@@ -38,3 +38,4 @@ export function TemaProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useTema = () => useContext(TemaContext)
+
