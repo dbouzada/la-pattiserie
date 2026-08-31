@@ -32,7 +32,6 @@ export default function Clientes() {
     const [guardando, setGuardando] = useState(false)
 
     const c = {
-        bg: tema === 'oscuro' ? '#0F1A09' : '#EDE8DF',
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
         card2: tema === 'oscuro' ? '#1E2E14' : '#EDE8DF',
         border: tema === 'oscuro' ? '#2A4A1A' : '#C8BFA8',
@@ -59,14 +58,14 @@ export default function Clientes() {
         setModal(true)
     }
 
-    const abrirEditar = (c: Cliente) => {
-        setEditando(c)
+    const abrirEditar = (cl: Cliente) => {
+        setEditando(cl)
         setForm({
-            nombre: c.nombre,
-            empresa: c.empresa || '',
-            mail: c.mail || '',
-            telefono: c.telefono || '',
-            notas: c.notas || '',
+            nombre: cl.nombre,
+            empresa: cl.empresa || '',
+            mail: cl.mail || '',
+            telefono: cl.telefono || '',
+            notas: cl.notas || '',
         })
         setModal(true)
     }
@@ -74,7 +73,6 @@ export default function Clientes() {
     const guardar = async () => {
         if (!form.nombre.trim()) return
         setGuardando(true)
-
         const payload = {
             nombre: form.nombre,
             empresa: form.empresa || null,
@@ -82,13 +80,11 @@ export default function Clientes() {
             telefono: form.telefono || null,
             notas: form.notas || null,
         }
-
         if (editando) {
             await supabase.from('clientes').update(payload).eq('id', editando.id)
         } else {
             await supabase.from('clientes').insert(payload)
         }
-
         await cargar()
         setModal(false)
         setGuardando(false)
@@ -136,188 +132,200 @@ export default function Clientes() {
     )
 
     return (
-        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <>
+            <style>{`
+        .clientes-col-empresa, .clientes-col-notas { display: table-cell; }
+        @media (max-width: 640px) {
+          .clientes-col-empresa, .clientes-col-notas { display: none; }
+        }
+      `}</style>
 
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Clientes</h1>
-                    <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>{clientes.length} clientes registrados</p>
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <input
-                        type="text"
-                        placeholder="Buscar..."
-                        value={busqueda}
-                        onChange={e => setBusqueda(e.target.value)}
-                        style={{
-                            background: c.card, border: `1px solid ${c.border}`,
-                            borderRadius: '10px', padding: '0.5rem 1rem',
-                            color: c.text, fontSize: '0.85rem', outline: 'none', width: '240px',
-                        }}
-                        onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                        onBlur={e => e.target.style.borderColor = c.border}
-                    />
-                    <button
-                        onClick={abrirNuevo}
-                        style={{
-                            background: '#F59E0B', color: '#0A0A0F',
-                            border: 'none', borderRadius: '10px',
-                            padding: '0.5rem 1.1rem', fontSize: '0.85rem',
-                            fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
-                        }}
-                    >
-                        + Nuevo
-                    </button>
-                </div>
-            </div>
+            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* Tabla */}
-            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead>
-                        <tr style={{ borderBottom: `1px solid ${c.border}` }}>
-                            {['Nombre', 'Empresa', 'Mail', 'Teléfono', 'Notas', ''].map(h => (
-                                <th key={h} style={{
-                                    padding: '0.875rem 1rem', textAlign: 'left',
-                                    fontSize: '0.72rem', color: c.muted,
-                                    textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500,
-                                }}>{h}</th>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Clientes</h1>
+                        <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>{clientes.length} clientes registrados</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <input
+                            type="text"
+                            placeholder="Buscar..."
+                            value={busqueda}
+                            onChange={e => setBusqueda(e.target.value)}
+                            style={{
+                                background: c.card, border: `1px solid ${c.border}`,
+                                borderRadius: '10px', padding: '0.5rem 1rem',
+                                color: c.text, fontSize: '0.85rem', outline: 'none',
+                                width: '100%', maxWidth: '220px', boxSizing: 'border-box' as const,
+                            }}
+                            onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                            onBlur={e => e.target.style.borderColor = c.border}
+                        />
+                        <button
+                            onClick={abrirNuevo}
+                            style={{
+                                background: '#C9A96E', color: '#0F1A09',
+                                border: 'none', borderRadius: '10px',
+                                padding: '0.5rem 1.1rem', fontSize: '0.85rem',
+                                fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                        >
+                            + Nuevo
+                        </button>
+                    </div>
+                </div>
+
+                {/* Tabla */}
+                <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', overflow: 'hidden', overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                        <thead>
+                            <tr style={{ borderBottom: `1px solid ${c.border}` }}>
+                                <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Nombre</th>
+                                <th className="clientes-col-empresa" style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Empresa</th>
+                                <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Mail</th>
+                                <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Teléfono</th>
+                                <th className="clientes-col-notas" style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Notas</th>
+                                <th style={{ padding: '0.875rem 1rem' }}></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtrados.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: c.muted2 }}>
+                                        {busqueda ? 'Sin resultados' : 'Sin clientes registrados'}
+                                    </td>
+                                </tr>
+                            )}
+                            {filtrados.map((cl, i) => (
+                                <tr key={cl.id} style={{ borderBottom: i < filtrados.length - 1 ? `1px solid ${c.border}` : 'none' }}>
+                                    <td style={{ padding: '0.875rem 1rem', color: c.text, fontWeight: 500, whiteSpace: 'nowrap' }}>{cl.nombre}</td>
+                                    <td className="clientes-col-empresa" style={{ padding: '0.875rem 1rem', color: c.muted }}>{cl.empresa || '—'}</td>
+                                    <td style={{ padding: '0.875rem 1rem' }}>
+                                        {cl.mail ? (
+                                            <a href={`mailto:${cl.mail}`} style={{ color: '#60A5FA', textDecoration: 'none', fontSize: '0.85rem' }}>{cl.mail}</a>
+                                        ) : <span style={{ color: c.muted }}>—</span>}
+                                    </td>
+                                    <td style={{ padding: '0.875rem 1rem', color: c.muted, whiteSpace: 'nowrap' }}>{cl.telefono || '—'}</td>
+                                    <td className="clientes-col-notas" style={{ padding: '0.875rem 1rem', color: c.muted, fontSize: '0.8rem', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cl.notas || '—'}</td>
+                                    <td style={{ padding: '0.875rem 1rem' }}>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => abrirEditar(cl)}
+                                                style={{
+                                                    background: 'transparent', border: `1px solid ${c.border}`,
+                                                    borderRadius: '8px', padding: '0.3rem 0.75rem',
+                                                    color: c.muted, fontSize: '0.78rem', cursor: 'pointer',
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#C9A96E50'; e.currentTarget.style.color = '#C9A96E' }}
+                                                onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
+                                            >
+                                                editar
+                                            </button>
+                                            <button
+                                                onClick={() => eliminar(cl.id)}
+                                                style={{
+                                                    background: 'transparent', border: `1px solid ${c.border}`,
+                                                    borderRadius: '8px', padding: '0.3rem 0.75rem',
+                                                    color: c.muted, fontSize: '0.78rem', cursor: 'pointer',
+                                                    whiteSpace: 'nowrap',
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#F8717150'; e.currentTarget.style.color = '#F87171' }}
+                                                onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
+                                            >
+                                                eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filtrados.length === 0 && (
-                            <tr>
-                                <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: c.muted2 }}>
-                                    {busqueda ? 'Sin resultados' : 'Sin clientes registrados'}
-                                </td>
-                            </tr>
-                        )}
-                        {filtrados.map((cl, i) => (
-                            <tr key={cl.id} style={{ borderBottom: i < filtrados.length - 1 ? `1px solid ${c.border}` : 'none' }}>
-                                <td style={{ padding: '0.875rem 1rem', color: c.text, fontWeight: 500 }}>{cl.nombre}</td>
-                                <td style={{ padding: '0.875rem 1rem', color: c.muted }}>{cl.empresa || '—'}</td>
-                                <td style={{ padding: '0.875rem 1rem' }}>
-                                    {cl.mail ? (
-                                        <a href={`mailto:${cl.mail}`} style={{ color: '#60A5FA', textDecoration: 'none' }}>{cl.mail}</a>
-                                    ) : <span style={{ color: c.muted }}>—</span>}
-                                </td>
-                                <td style={{ padding: '0.875rem 1rem', color: c.muted }}>{cl.telefono || '—'}</td>
-                                <td style={{ padding: '0.875rem 1rem', color: c.muted, fontSize: '0.8rem' }}>{cl.notas || '—'}</td>
-                                <td style={{ padding: '0.875rem 1rem' }}>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
-                                            onClick={() => abrirEditar(cl)}
-                                            style={{
-                                                background: 'transparent', border: `1px solid ${c.border}`,
-                                                borderRadius: '8px', padding: '0.3rem 0.75rem',
-                                                color: c.muted, fontSize: '0.78rem', cursor: 'pointer',
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#F59E0B50'; e.currentTarget.style.color = '#F59E0B' }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
-                                        >
-                                            editar
-                                        </button>
-                                        <button
-                                            onClick={() => eliminar(cl.id)}
-                                            style={{
-                                                background: 'transparent', border: `1px solid ${c.border}`,
-                                                borderRadius: '8px', padding: '0.3rem 0.75rem',
-                                                color: c.muted, fontSize: '0.78rem', cursor: 'pointer',
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#F8717150'; e.currentTarget.style.color = '#F87171' }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
-                                        >
-                                            eliminar
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
 
-            {/* Modal */}
-            {modal && (
-                <div style={{
-                    position: 'fixed', inset: 0, background: '#00000080',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 50, padding: '1rem', backdropFilter: 'blur(4px)',
-                }}>
+                {/* Modal */}
+                {modal && (
                     <div style={{
-                        background: c.card, border: `1px solid ${c.border}`,
-                        borderRadius: '20px', padding: '2rem',
-                        width: '100%', maxWidth: '420px',
-                        display: 'flex', flexDirection: 'column', gap: '1rem',
+                        position: 'fixed', inset: 0, background: '#00000080',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 50, padding: '1rem', backdropFilter: 'blur(4px)',
                     }}>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 600, color: c.text }}>
-                            {editando ? 'Editar cliente' : 'Nuevo cliente'}
-                        </h2>
+                        <div style={{
+                            background: c.card, border: `1px solid ${c.border}`,
+                            borderRadius: '20px', padding: '2rem',
+                            width: '100%', maxWidth: '420px',
+                            display: 'flex', flexDirection: 'column', gap: '1rem',
+                            maxHeight: '90vh', overflowY: 'auto',
+                        }}>
+                            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: c.text }}>
+                                {editando ? 'Editar cliente' : 'Nuevo cliente'}
+                            </h2>
 
-                        {[
-                            { label: 'Nombre *', key: 'nombre', type: 'text', placeholder: 'Nombre completo' },
-                            { label: 'Empresa', key: 'empresa', type: 'text', placeholder: 'Nombre de la empresa' },
-                            { label: 'Mail', key: 'mail', type: 'email', placeholder: 'cliente@email.com' },
-                            { label: 'Teléfono', key: 'telefono', type: 'tel', placeholder: '+54 9 11 1234-5678' },
-                        ].map(f => (
-                            <div key={f.key}>
-                                <label style={labelStyle}>{f.label}</label>
-                                <input
-                                    type={f.type}
-                                    value={(form as any)[f.key]}
-                                    onChange={e => setForm({ ...form, [f.key]: e.target.value })}
-                                    placeholder={f.placeholder}
-                                    style={inputStyle}
-                                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                            {[
+                                { label: 'Nombre *', key: 'nombre', type: 'text', placeholder: 'Nombre completo' },
+                                { label: 'Empresa', key: 'empresa', type: 'text', placeholder: 'Nombre de la empresa' },
+                                { label: 'Mail', key: 'mail', type: 'email', placeholder: 'cliente@email.com' },
+                                { label: 'Teléfono', key: 'telefono', type: 'tel', placeholder: '+54 9 11 1234-5678' },
+                            ].map(f => (
+                                <div key={f.key}>
+                                    <label style={labelStyle}>{f.label}</label>
+                                    <input
+                                        type={f.type}
+                                        value={(form as any)[f.key]}
+                                        onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                                        placeholder={f.placeholder}
+                                        style={inputStyle}
+                                        onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                                        onBlur={e => e.target.style.borderColor = c.border}
+                                    />
+                                </div>
+                            ))}
+
+                            <div>
+                                <label style={labelStyle}>Notas</label>
+                                <textarea
+                                    value={form.notas}
+                                    onChange={e => setForm({ ...form, notas: e.target.value })}
+                                    placeholder="Preferencias, observaciones..."
+                                    rows={2}
+                                    style={{ ...inputStyle, resize: 'none' }}
+                                    onFocus={e => e.target.style.borderColor = '#C9A96E50'}
                                     onBlur={e => e.target.style.borderColor = c.border}
                                 />
                             </div>
-                        ))}
 
-                        <div>
-                            <label style={labelStyle}>Notas</label>
-                            <textarea
-                                value={form.notas}
-                                onChange={e => setForm({ ...form, notas: e.target.value })}
-                                placeholder="Preferencias, observaciones..."
-                                rows={2}
-                                style={{ ...inputStyle, resize: 'none' }}
-                                onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                                onBlur={e => e.target.style.borderColor = c.border}
-                            />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                            <button
-                                onClick={() => setModal(false)}
-                                style={{
-                                    flex: 1, padding: '0.75rem', background: 'transparent',
-                                    border: `1px solid ${c.border}`, borderRadius: '10px',
-                                    color: c.muted, fontSize: '0.875rem', cursor: 'pointer',
-                                }}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={guardar}
-                                disabled={guardando || !form.nombre.trim()}
-                                style={{
-                                    flex: 1, padding: '0.75rem',
-                                    background: !form.nombre.trim() ? c.card2 : '#F59E0B',
-                                    border: 'none', borderRadius: '10px',
-                                    color: !form.nombre.trim() ? c.muted2 : '#0A0A0F',
-                                    fontSize: '0.875rem', fontWeight: 600,
-                                    cursor: !form.nombre.trim() ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {guardando ? 'Guardando...' : editando ? 'Guardar' : 'Crear'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    onClick={() => setModal(false)}
+                                    style={{
+                                        flex: 1, padding: '0.75rem', background: 'transparent',
+                                        border: `1px solid ${c.border}`, borderRadius: '10px',
+                                        color: c.muted, fontSize: '0.875rem', cursor: 'pointer',
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={guardar}
+                                    disabled={guardando || !form.nombre.trim()}
+                                    style={{
+                                        flex: 1, padding: '0.75rem',
+                                        background: !form.nombre.trim() ? c.card2 : '#C9A96E',
+                                        border: 'none', borderRadius: '10px',
+                                        color: !form.nombre.trim() ? c.muted2 : '#0F1A09',
+                                        fontSize: '0.875rem', fontWeight: 600,
+                                        cursor: !form.nombre.trim() ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    {guardando ? 'Guardando...' : editando ? 'Guardar' : 'Crear'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </>
     )
 }
