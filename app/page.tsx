@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [topProductos, setTopProductos] = useState<any[]>([])
   const [semana, setSemana] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
 
   const c = {
     bg: tema === 'oscuro' ? '#0F1A09' : '#EDE8DF',
@@ -25,20 +26,28 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function cargar() {
-      const hoyStr = new Date().toISOString().split('T')[0]
-      const { data: resumen } = await supabase.from('resumen_diario').select('*').eq('fecha', hoyStr).single()
-      const { data: top } = await supabase.from('top_productos').select('*').limit(6)
-      const { data: ultimos } = await supabase.from('resumen_diario').select('fecha, total_dia, cantidad_tickets').order('fecha', { ascending: false }).limit(7)
+      const { data: resumen } = await supabase
+        .from('resumen_diario').select('*').eq('fecha', fecha).single()
+
+      const { data: top } = await supabase
+        .from('top_productos').select('*').limit(6)
+
+      const { data: ultimos } = await supabase
+        .from('resumen_diario')
+        .select('fecha, total_dia, cantidad_tickets')
+        .order('fecha', { ascending: false })
+        .limit(7)
+
       setHoy(resumen)
       setTopProductos(top || [])
       setSemana((ultimos || []).reverse().map(d => ({
-        fecha: new Date(d.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' }),
+        fecha: new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' }),
         total: d.total_dia,
       })))
       setLoading(false)
     }
     cargar()
-  }, [])
+  }, [fecha])
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
@@ -92,16 +101,28 @@ export default function Dashboard() {
               Buenos días 👋
             </h1>
             <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
-              {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {new Date(fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
-          <a href="/ventas/nueva" style={{
-            background: '#C9A96E', color: '#0F1A09',
-            padding: '0.6rem 1.2rem', borderRadius: '10px',
-            fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-          }}>
-            + Nueva venta
-          </a>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="date"
+              value={fecha}
+              onChange={e => { setFecha(e.target.value); setLoading(true) }}
+              style={{
+                background: c.card, border: `1px solid ${c.border}`,
+                borderRadius: '10px', padding: '0.5rem 0.875rem',
+                color: c.text, fontSize: '0.85rem', outline: 'none',
+              }}
+            />
+            <a href="/ventas/nueva" style={{
+              background: '#C9A96E', color: '#0F1A09',
+              padding: '0.6rem 1.2rem', borderRadius: '10px',
+              fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
+            }}>
+              + Nueva venta
+            </a>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -156,7 +177,7 @@ export default function Dashboard() {
 
           <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', padding: '1.25rem' }}>
             <p style={{ fontSize: '0.75rem', color: c.muted, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Medios de pago hoy
+              Medios de pago
             </p>
             {medios.length === 0 ? (
               <div style={{ color: c.muted2, fontSize: '0.85rem', textAlign: 'center', padding: '2rem 0' }}>Sin ventas aún</div>
