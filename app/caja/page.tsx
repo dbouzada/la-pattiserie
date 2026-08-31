@@ -16,15 +16,15 @@ export default function Caja() {
     })
 
     const c = {
-        bg: tema === 'oscuro' ? '#0F1A09' : '#EDE8DF',
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
         card2: tema === 'oscuro' ? '#1E2E14' : '#EDE8DF',
         border: tema === 'oscuro' ? '#2A4A1A' : '#C8BFA8',
         text: tema === 'oscuro' ? '#E8E4D8' : '#1A1A14',
         muted: tema === 'oscuro' ? '#8BAA6E' : '#6B6550',
         muted2: tema === 'oscuro' ? '#4A6A3A' : '#9B9280',
-        input: tema === 'oscuro' ? '#1E2E14' : '#F7F3EC',
+        input: tema === 'oscuro' ? '#162210' : '#FFFFFF',
     }
+
     const hoy = new Date().toISOString().split('T')[0]
 
     const cargar = async () => {
@@ -53,7 +53,7 @@ export default function Caja() {
     const total = Object.values(totales).reduce((a, b) => a + b, 0)
 
     const medios = [
-        { label: 'Efectivo', value: totales.efectivo, color: '#FBBF24' },
+        { label: 'Efectivo', value: totales.efectivo, color: '#C9A96E' },
         { label: 'Tarjeta', value: totales.tarjeta, color: '#60A5FA' },
         { label: 'Transferencia', value: totales.transferencia, color: '#A78BFA' },
         { label: 'Mercado Pago', value: totales.mercadopago, color: '#34D399' },
@@ -79,32 +79,24 @@ export default function Caja() {
     const descargarPDF = () => {
         const doc = new jsPDF()
         const fechaFormateada = new Date().toLocaleDateString('es-AR').replace(/\//g, '_')
-        const nombreArchivo = `Caja_${fechaFormateada}.pdf`
-
         doc.setFontSize(20)
         doc.setTextColor(40, 40, 40)
-        doc.text('La Pattiserie', 105, 20, { align: 'center' })
-
+        doc.text('La Pâtisserie', 105, 20, { align: 'center' })
         doc.setFontSize(12)
         doc.setTextColor(100, 100, 100)
         doc.text(
             `Arqueo de caja — ${new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
             105, 30, { align: 'center' }
         )
-
         doc.setDrawColor(230, 230, 230)
         doc.line(20, 36, 190, 36)
-
         doc.setFontSize(28)
         doc.setTextColor(40, 167, 69)
         doc.text(fmt(total), 105, 52, { align: 'center' })
-
         doc.setFontSize(10)
         doc.setTextColor(150, 150, 150)
         doc.text('TOTAL DEL DÍA', 105, 60, { align: 'center' })
-
         doc.line(20, 66, 190, 66)
-
         let y = 78
         doc.setFontSize(11)
         medios.forEach(m => {
@@ -124,11 +116,9 @@ export default function Caja() {
                 y += 12
             }
         })
-
         doc.setDrawColor(230, 230, 230)
         doc.line(20, y, 190, y)
         y += 12
-
         if (notas) {
             doc.setFontSize(10)
             doc.setTextColor(100, 100, 100)
@@ -138,12 +128,10 @@ export default function Caja() {
             const lineas = doc.splitTextToSize(notas, 150)
             doc.text(lineas, 30, y)
         }
-
         doc.setFontSize(8)
         doc.setTextColor(180, 180, 180)
         doc.text(`Generado el ${new Date().toLocaleString('es-AR')}`, 105, 280, { align: 'center' })
-
-        doc.save(nombreArchivo)
+        doc.save(`Caja_${fechaFormateada}.pdf`)
     }
 
     if (loading) return (
@@ -153,7 +141,7 @@ export default function Caja() {
     )
 
     return (
-        <div style={{ maxWidth: '560px', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ maxWidth: '560px', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Header */}
             <div>
@@ -181,7 +169,7 @@ export default function Caja() {
                 <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
                     Total del día
                 </p>
-                <p style={{ fontSize: '3rem', fontWeight: 800, color: '#4ADE80', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                <p style={{ fontSize: '2.5rem', fontWeight: 800, color: '#4ADE80', letterSpacing: '-0.04em', lineHeight: 1 }}>
                     {fmt(total)}
                 </p>
             </div>
@@ -191,7 +179,7 @@ export default function Caja() {
                 {medios.map((m, i) => (
                     <div key={m.label} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '1rem 1.25rem',
+                        padding: '0.875rem 1.25rem',
                         borderBottom: i < medios.length - 1 ? `1px solid ${c.border}` : 'none',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -222,8 +210,7 @@ export default function Caja() {
                 <div style={{ height: '6px', borderRadius: '6px', overflow: 'hidden', display: 'flex', gap: '2px' }}>
                     {medios.filter(m => m.value > 0).map(m => (
                         <div key={m.label} style={{
-                            height: '100%',
-                            width: `${(m.value / total) * 100}%`,
+                            height: '100%', width: `${(m.value / total) * 100}%`,
                             background: m.color, borderRadius: '6px',
                         }} />
                     ))}
@@ -248,9 +235,9 @@ export default function Caja() {
                         border: `1px solid ${c.border}`, borderRadius: '12px',
                         padding: '0.875rem 1rem', color: c.text,
                         fontSize: '0.875rem', outline: 'none', resize: 'none',
-                        boxSizing: 'border-box', fontFamily: 'inherit',
+                        boxSizing: 'border-box' as const, fontFamily: 'inherit',
                     }}
-                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                    onFocus={e => e.target.style.borderColor = '#C9A96E50'}
                     onBlur={e => e.target.style.borderColor = c.border}
                 />
             </div>
@@ -262,15 +249,15 @@ export default function Caja() {
                     disabled={guardando}
                     style={{
                         flex: 1, padding: '1rem',
-                        background: guardando ? c.card2 : '#F59E0B',
-                        color: guardando ? c.muted2 : '#0A0A0F',
+                        background: guardando ? c.card2 : '#C9A96E',
+                        color: guardando ? c.muted2 : '#0F1A09',
                         border: 'none', borderRadius: '14px',
                         fontSize: '1rem', fontWeight: 700,
                         cursor: guardando ? 'not-allowed' : 'pointer',
                         letterSpacing: '-0.01em', transition: 'all 0.15s',
                     }}
-                    onMouseEnter={e => { if (!guardando) (e.currentTarget.style.background = '#FBBF24') }}
-                    onMouseLeave={e => { if (!guardando) (e.currentTarget.style.background = '#F59E0B') }}
+                    onMouseEnter={e => { if (!guardando) (e.currentTarget.style.background = '#A8894E') }}
+                    onMouseLeave={e => { if (!guardando) (e.currentTarget.style.background = '#C9A96E') }}
                 >
                     {guardando ? 'Guardando...' : 'Guardar arqueo'}
                 </button>
@@ -283,7 +270,7 @@ export default function Caja() {
                         borderRadius: '14px', fontSize: '1rem', fontWeight: 600,
                         cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#F59E0B50'; e.currentTarget.style.color = '#F59E0B' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#C9A96E50'; e.currentTarget.style.color = '#C9A96E' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.text }}
                 >
                     ↓ PDF
