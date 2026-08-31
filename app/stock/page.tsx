@@ -19,14 +19,12 @@ export default function Stock() {
     const [busqueda, setBusqueda] = useState('')
 
     const c = {
-        bg: tema === 'oscuro' ? '#0F1A09' : '#EDE8DF',
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
         card2: tema === 'oscuro' ? '#1E2E14' : '#EDE8DF',
         border: tema === 'oscuro' ? '#2A4A1A' : '#C8BFA8',
         text: tema === 'oscuro' ? '#E8E4D8' : '#1A1A14',
         muted: tema === 'oscuro' ? '#8BAA6E' : '#6B6550',
         muted2: tema === 'oscuro' ? '#4A6A3A' : '#9B9280',
-        input: tema === 'oscuro' ? '#1E2E14' : '#F7F3EC',
     }
 
     const cargar = async () => {
@@ -63,117 +61,130 @@ export default function Stock() {
     )
 
     return (
-        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <>
+            <style>{`
+        .stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        @media (max-width: 640px) {
+          .stock-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+      `}</style>
 
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Stock</h1>
-                    <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
-                        {criticos.length > 0 && <span style={{ color: '#F87171' }}>{criticos.length} sin stock · </span>}
-                        {bajos.length > 0 && <span style={{ color: '#FBBF24' }}>{bajos.length} stock bajo · </span>}
-                        {productos.length} productos
-                    </p>
-                </div>
-                <input
-                    type="text"
-                    placeholder="Buscar..."
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                    style={{
-                        background: c.card, border: `1px solid ${c.border}`,
-                        borderRadius: '10px', padding: '0.5rem 1rem',
-                        color: c.text, fontSize: '0.85rem', outline: 'none', width: '220px',
-                    }}
-                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                    onBlur={e => e.target.style.borderColor = c.border}
-                />
-            </div>
+            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                {[
-                    { label: 'Sin stock', value: criticos.length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
-                    { label: 'Stock bajo', value: bajos.length, color: '#FBBF24', bg: '#FBBF2410', border: '#FBBF2425' },
-                    { label: 'OK', value: productos.length - criticos.length - bajos.length, color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
-                ].map(k => (
-                    <div key={k.label} style={{
-                        background: k.bg, border: `1px solid ${k.border}`,
-                        borderRadius: '16px', padding: '1.25rem 1.5rem',
-                    }}>
-                        <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{k.label}</p>
-                        <p style={{ fontSize: '1.6rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Stock</h1>
+                        <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
+                            {criticos.length > 0 && <span style={{ color: '#F87171' }}>{criticos.length} sin stock · </span>}
+                            {bajos.length > 0 && <span style={{ color: '#C9A96E' }}>{bajos.length} stock bajo · </span>}
+                            {productos.length} productos
+                        </p>
                     </div>
-                ))}
-            </div>
+                    <input
+                        type="text"
+                        placeholder="Buscar..."
+                        value={busqueda}
+                        onChange={e => setBusqueda(e.target.value)}
+                        style={{
+                            background: c.card, border: `1px solid ${c.border}`,
+                            borderRadius: '10px', padding: '0.5rem 1rem',
+                            color: c.text, fontSize: '0.85rem', outline: 'none',
+                            width: '100%', maxWidth: '220px', boxSizing: 'border-box' as const,
+                        }}
+                        onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                        onBlur={e => e.target.style.borderColor = c.border}
+                    />
+                </div>
 
-            {/* Tabla */}
-            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead>
-                        <tr style={{ borderBottom: `1px solid ${c.border}` }}>
-                            {['Producto', 'Stock actual', 'Nuevo stock', ''].map(h => (
-                                <th key={h} style={{
-                                    padding: '0.875rem 1rem',
-                                    textAlign: h === 'Producto' ? 'left' : 'right',
-                                    fontSize: '0.72rem', color: c.muted,
-                                    textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500,
-                                }}>{h}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filtrados.map((p, i) => {
-                            const nuevo = ajustes[p.id] ?? p.stock
-                            const cambio = nuevo !== p.stock
-                            return (
-                                <tr key={p.id} style={{ borderBottom: i < filtrados.length - 1 ? `1px solid ${c.border}` : 'none' }}>
-                                    <td style={{ padding: '0.875rem 1rem', color: c.text, fontWeight: 500 }}>{p.nombre}</td>
-                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-                                        <span style={{
-                                            fontSize: '0.9rem', fontWeight: 600,
-                                            color: p.stock <= 0 ? '#F87171' : p.stock < 10 ? '#FBBF24' : c.muted,
-                                        }}>
-                                            {p.stock}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-                                        <input
-                                            type="number"
-                                            value={nuevo}
-                                            onChange={e => setAjustes({ ...ajustes, [p.id]: Number(e.target.value) })}
-                                            style={{
-                                                width: '80px', background: c.card2,
-                                                border: `1px solid ${cambio ? '#F59E0B50' : c.border}`,
-                                                borderRadius: '8px', padding: '0.375rem 0.75rem',
-                                                color: cambio ? '#F59E0B' : c.text,
-                                                fontSize: '0.875rem', textAlign: 'right', outline: 'none',
-                                                fontWeight: cambio ? 600 : 400,
-                                            }}
-                                        />
-                                    </td>
-                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-                                        <button
-                                            onClick={() => ajustar(p.id, nuevo)}
-                                            disabled={!cambio || guardando === p.id}
-                                            style={{
-                                                padding: '0.375rem 0.875rem', borderRadius: '8px',
-                                                fontSize: '0.78rem', fontWeight: 500, border: 'none',
-                                                cursor: cambio ? 'pointer' : 'not-allowed',
-                                                background: cambio ? '#F59E0B' : c.card2,
-                                                color: cambio ? '#0A0A0F' : c.muted2,
-                                                transition: 'all 0.15s',
-                                            }}
-                                        >
-                                            {guardando === p.id ? '...' : 'Guardar'}
-                                        </button>
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
+                {/* KPIs */}
+                <div className="stock-grid">
+                    {[
+                        { label: 'Sin stock', value: criticos.length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
+                        { label: 'Stock bajo', value: bajos.length, color: '#C9A96E', bg: '#C9A96E10', border: '#C9A96E25' },
+                        { label: 'OK', value: productos.length - criticos.length - bajos.length, color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
+                    ].map(k => (
+                        <div key={k.label} style={{
+                            background: k.bg, border: `1px solid ${k.border}`,
+                            borderRadius: '16px', padding: '1rem 1.25rem',
+                        }}>
+                            <p style={{ fontSize: '0.68rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>{k.label}</p>
+                            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Tabla */}
+                <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '16px', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                        <thead>
+                            <tr style={{ borderBottom: `1px solid ${c.border}` }}>
+                                {['Producto', 'Stock actual', 'Nuevo stock', ''].map(h => (
+                                    <th key={h} style={{
+                                        padding: '0.875rem 1rem',
+                                        textAlign: h === 'Producto' ? 'left' : 'right',
+                                        fontSize: '0.72rem', color: c.muted,
+                                        textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500,
+                                        whiteSpace: 'nowrap',
+                                    }}>{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtrados.map((p, i) => {
+                                const nuevo = ajustes[p.id] ?? p.stock
+                                const cambio = nuevo !== p.stock
+                                return (
+                                    <tr key={p.id} style={{ borderBottom: i < filtrados.length - 1 ? `1px solid ${c.border}` : 'none' }}>
+                                        <td style={{ padding: '0.875rem 1rem', color: c.text, fontWeight: 500, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {p.nombre}
+                                        </td>
+                                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                            <span style={{
+                                                fontSize: '0.9rem', fontWeight: 600,
+                                                color: p.stock <= 0 ? '#F87171' : p.stock < 10 ? '#C9A96E' : c.muted,
+                                            }}>
+                                                {p.stock}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                            <input
+                                                type="number"
+                                                value={nuevo}
+                                                onChange={e => setAjustes({ ...ajustes, [p.id]: Number(e.target.value) })}
+                                                style={{
+                                                    width: '70px', background: c.card2,
+                                                    border: `1px solid ${cambio ? '#C9A96E50' : c.border}`,
+                                                    borderRadius: '8px', padding: '0.375rem 0.5rem',
+                                                    color: cambio ? '#C9A96E' : c.text,
+                                                    fontSize: '0.875rem', textAlign: 'right', outline: 'none',
+                                                    fontWeight: cambio ? 600 : 400,
+                                                }}
+                                            />
+                                        </td>
+                                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                            <button
+                                                onClick={() => ajustar(p.id, nuevo)}
+                                                disabled={!cambio || guardando === p.id}
+                                                style={{
+                                                    padding: '0.375rem 0.75rem', borderRadius: '8px',
+                                                    fontSize: '0.78rem', fontWeight: 500, border: 'none',
+                                                    cursor: cambio ? 'pointer' : 'not-allowed',
+                                                    background: cambio ? '#C9A96E' : c.card2,
+                                                    color: cambio ? '#0F1A09' : c.muted2,
+                                                    transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                                }}
+                                            >
+                                                {guardando === p.id ? '...' : 'Guardar'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        </>
     )
 }
