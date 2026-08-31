@@ -25,7 +25,7 @@ interface Venta {
 }
 
 const MEDIOS: Record<string, { label: string; color: string }> = {
-    efectivo: { label: 'Efectivo', color: '#FBBF24' },
+    efectivo: { label: 'Efectivo', color: '#C9A96E' },
     tarjeta: { label: 'Tarjeta', color: '#60A5FA' },
     transferencia: { label: 'Transferencia', color: '#A78BFA' },
     mercadopago: { label: 'Mercado Pago', color: '#34D399' },
@@ -40,14 +40,12 @@ export default function Ventas() {
     const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
 
     const c = {
-        bg: tema === 'oscuro' ? '#0F1A09' : '#EDE8DF',
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
         card2: tema === 'oscuro' ? '#1E2E14' : '#EDE8DF',
         border: tema === 'oscuro' ? '#2A4A1A' : '#C8BFA8',
         text: tema === 'oscuro' ? '#E8E4D8' : '#1A1A14',
         muted: tema === 'oscuro' ? '#8BAA6E' : '#6B6550',
         muted2: tema === 'oscuro' ? '#4A6A3A' : '#9B9280',
-        input: tema === 'oscuro' ? '#1E2E14' : '#F7F3EC',
     }
 
     const cargar = async () => {
@@ -90,170 +88,183 @@ export default function Ventas() {
         new Date(str).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 
     return (
-        <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <>
+            <style>{`
+        .ventas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        @media (max-width: 768px) {
+          .ventas-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+          .ventas-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
 
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Ventas</h1>
-                    <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
-                        {ventasActivas.length} ticket{ventasActivas.length !== 1 ? 's' : ''} · {fmt(total)}
-                    </p>
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <input
-                        type="date"
-                        value={fecha}
-                        onChange={e => setFecha(e.target.value)}
-                        style={{
-                            background: c.card, border: `1px solid ${c.border}`,
-                            borderRadius: '10px', padding: '0.5rem 0.875rem',
-                            color: c.text, fontSize: '0.85rem', outline: 'none',
-                        }}
-                    />
-                    <Link href="/ventas/nueva" style={{
-                        background: '#F59E0B', color: '#0A0A0F',
-                        padding: '0.5rem 1.1rem', borderRadius: '10px',
-                        fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-                    }}>
-                        + Nueva
-                    </Link>
-                </div>
-            </div>
+            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                {[
-                    { label: 'Total del día', value: fmt(total), color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
-                    { label: 'Tickets', value: ventasActivas.length, color: '#60A5FA', bg: '#60A5FA10', border: '#60A5FA25' },
-                    { label: 'Anuladas', value: ventas.filter(v => v.anulada).length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
-                ].map(k => (
-                    <div key={k.label} style={{
-                        background: k.bg, border: `1px solid ${k.border}`,
-                        borderRadius: '16px', padding: '1.25rem 1.5rem',
-                    }}>
-                        <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{k.label}</p>
-                        <p style={{ fontSize: '1.6rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Ventas</h1>
+                        <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
+                            {ventasActivas.length} ticket{ventasActivas.length !== 1 ? 's' : ''} · {fmt(total)}
+                        </p>
                     </div>
-                ))}
-            </div>
-
-            {loading && <p style={{ color: c.muted, fontSize: '0.85rem' }}>Cargando...</p>}
-
-            {!loading && ventas.length === 0 && (
-                <div style={{
-                    background: c.card, border: `1px solid ${c.border}`,
-                    borderRadius: '16px', padding: '3rem',
-                    textAlign: 'center', color: c.muted2, fontSize: '0.875rem',
-                }}>
-                    Sin ventas para esta fecha
-                </div>
-            )}
-
-            {/* Lista */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {ventas.map(v => {
-                    const m = MEDIOS[v.medio_pago] || { label: v.medio_pago, color: '#6B6B80' }
-                    return (
-                        <div key={v.id} style={{
-                            background: c.card,
-                            border: `1px solid ${v.anulada ? '#F8717120' : c.border}`,
-                            borderRadius: '14px', overflow: 'hidden',
-                            opacity: v.anulada ? 0.5 : 1,
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                            type="date"
+                            value={fecha}
+                            onChange={e => setFecha(e.target.value)}
+                            style={{
+                                background: c.card, border: `1px solid ${c.border}`,
+                                borderRadius: '10px', padding: '0.5rem 0.875rem',
+                                color: c.text, fontSize: '0.85rem', outline: 'none',
+                            }}
+                        />
+                        <Link href="/ventas/nueva" style={{
+                            background: '#C9A96E', color: '#0F1A09',
+                            padding: '0.5rem 1.1rem', borderRadius: '10px',
+                            fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
+                            whiteSpace: 'nowrap',
                         }}>
-                            <button
-                                onClick={() => setExpandida(expandida === v.id ? null : v.id)}
-                                style={{
-                                    width: '100%', display: 'flex', alignItems: 'center',
-                                    justifyContent: 'space-between', padding: '0.875rem 1.25rem',
-                                    background: 'transparent', border: 'none', cursor: 'pointer', gap: '1rem',
-                                }}
-                                onMouseEnter={e => (e.currentTarget.style.background = c.card2)}
-                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <span style={{ fontSize: '0.78rem', color: c.muted, fontVariantNumeric: 'tabular-nums' }}>
-                                        {hora(v.created_at)}
-                                    </span>
-                                    <span style={{
-                                        fontSize: '0.72rem', padding: '0.2rem 0.6rem',
-                                        borderRadius: '6px', background: m.color + '20',
-                                        color: m.color, fontWeight: 500,
-                                    }}>
-                                        {m.label}
-                                    </span>
-                                    {v.anulada && (
-                                        <span style={{
-                                            fontSize: '0.72rem', padding: '0.2rem 0.6rem',
-                                            borderRadius: '6px', background: '#F8717120',
-                                            color: '#F87171', fontWeight: 500,
-                                        }}>
-                                            anulada
-                                        </span>
-                                    )}
-                                    {v.descuento > 0 && (
-                                        <span style={{
-                                            fontSize: '0.72rem', padding: '0.2rem 0.6rem',
-                                            borderRadius: '6px', background: '#A78BFA20',
-                                            color: '#A78BFA', fontWeight: 500,
-                                        }}>
-                                            desc.
-                                        </span>
-                                    )}
-                                    <span style={{ fontSize: '0.78rem', color: c.muted2 }}>
-                                        {v.venta_items.length} item{v.venta_items.length !== 1 ? 's' : ''}
-                                    </span>
-                                </div>
-                                <span style={{ fontSize: '1rem', fontWeight: 700, color: v.anulada ? '#F87171' : '#4ADE80', letterSpacing: '-0.02em' }}>
-                                    {fmt(v.total)}
-                                </span>
-                            </button>
+                            + Nueva
+                        </Link>
+                    </div>
+                </div>
 
-                            {expandida === v.id && (
-                                <div style={{ borderTop: `1px solid ${c.border}`, padding: '0.875rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    {v.venta_items.map(item => (
-                                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.85rem', color: c.muted }}>
-                                                {item.productos?.nombre}
-                                                {item.cantidad && item.cantidad > 1 && (
-                                                    <span style={{ color: c.muted2, marginLeft: '0.375rem' }}>×{item.cantidad}</span>
-                                                )}
-                                                {item.gramos && (
-                                                    <span style={{ color: c.muted2, marginLeft: '0.375rem' }}>{item.gramos}g</span>
-                                                )}
-                                            </span>
-                                            <span style={{ fontSize: '0.85rem', color: '#F59E0B', fontWeight: 500 }}>{fmt(item.subtotal)}</span>
-                                        </div>
-                                    ))}
-
-                                    {v.descuento > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${c.border}` }}>
-                                            <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>Descuento</span>
-                                            <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>−{fmt(v.descuento)}</span>
-                                        </div>
-                                    )}
-
-                                    {!v.anulada && (
-                                        <button
-                                            onClick={() => anular(v.id)}
-                                            style={{
-                                                marginTop: '0.5rem', padding: '0.5rem 1rem',
-                                                background: 'transparent', border: '1px solid #F8717130',
-                                                borderRadius: '8px', color: '#F87171',
-                                                fontSize: '0.78rem', cursor: 'pointer', width: '100%',
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.background = '#F8717110'}
-                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                            Anular venta
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                {/* KPIs */}
+                <div className="ventas-grid">
+                    {[
+                        { label: 'Total del día', value: fmt(total), color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
+                        { label: 'Tickets', value: ventasActivas.length, color: '#60A5FA', bg: '#60A5FA10', border: '#60A5FA25' },
+                        { label: 'Anuladas', value: ventas.filter(v => v.anulada).length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
+                    ].map(k => (
+                        <div key={k.label} style={{
+                            background: k.bg, border: `1px solid ${k.border}`,
+                            borderRadius: '16px', padding: '1rem 1.25rem',
+                        }}>
+                            <p style={{ fontSize: '0.68rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>{k.label}</p>
+                            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
                         </div>
-                    )
-                })}
+                    ))}
+                </div>
+
+                {loading && <p style={{ color: c.muted, fontSize: '0.85rem' }}>Cargando...</p>}
+
+                {!loading && ventas.length === 0 && (
+                    <div style={{
+                        background: c.card, border: `1px solid ${c.border}`,
+                        borderRadius: '16px', padding: '3rem',
+                        textAlign: 'center', color: c.muted2, fontSize: '0.875rem',
+                    }}>
+                        Sin ventas para esta fecha
+                    </div>
+                )}
+
+                {/* Lista */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {ventas.map(v => {
+                        const m = MEDIOS[v.medio_pago] || { label: v.medio_pago, color: '#6B6B80' }
+                        return (
+                            <div key={v.id} style={{
+                                background: c.card,
+                                border: `1px solid ${v.anulada ? '#F8717120' : c.border}`,
+                                borderRadius: '14px', overflow: 'hidden',
+                                opacity: v.anulada ? 0.5 : 1,
+                            }}>
+                                <button
+                                    onClick={() => setExpandida(expandida === v.id ? null : v.id)}
+                                    style={{
+                                        width: '100%', display: 'flex', alignItems: 'center',
+                                        justifyContent: 'space-between', padding: '0.875rem 1.25rem',
+                                        background: 'transparent', border: 'none', cursor: 'pointer', gap: '0.5rem',
+                                    }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = c.card2)}
+                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '0.78rem', color: c.muted, fontVariantNumeric: 'tabular-nums' }}>
+                                            {hora(v.created_at)}
+                                        </span>
+                                        <span style={{
+                                            fontSize: '0.72rem', padding: '0.2rem 0.6rem',
+                                            borderRadius: '6px', background: m.color + '20',
+                                            color: m.color, fontWeight: 500,
+                                        }}>
+                                            {m.label}
+                                        </span>
+                                        {v.anulada && (
+                                            <span style={{
+                                                fontSize: '0.72rem', padding: '0.2rem 0.6rem',
+                                                borderRadius: '6px', background: '#F8717120',
+                                                color: '#F87171', fontWeight: 500,
+                                            }}>
+                                                anulada
+                                            </span>
+                                        )}
+                                        {v.descuento > 0 && (
+                                            <span style={{
+                                                fontSize: '0.72rem', padding: '0.2rem 0.6rem',
+                                                borderRadius: '6px', background: '#A78BFA20',
+                                                color: '#A78BFA', fontWeight: 500,
+                                            }}>
+                                                desc.
+                                            </span>
+                                        )}
+                                        <span style={{ fontSize: '0.78rem', color: c.muted2 }}>
+                                            {v.venta_items.length} item{v.venta_items.length !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: v.anulada ? '#F87171' : '#4ADE80', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+                                        {fmt(v.total)}
+                                    </span>
+                                </button>
+
+                                {expandida === v.id && (
+                                    <div style={{ borderTop: `1px solid ${c.border}`, padding: '0.875rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {v.venta_items.map(item => (
+                                            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.85rem', color: c.muted }}>
+                                                    {item.productos?.nombre}
+                                                    {item.cantidad && item.cantidad > 1 && (
+                                                        <span style={{ color: c.muted2, marginLeft: '0.375rem' }}>×{item.cantidad}</span>
+                                                    )}
+                                                    {item.gramos && (
+                                                        <span style={{ color: c.muted2, marginLeft: '0.375rem' }}>{item.gramos}g</span>
+                                                    )}
+                                                </span>
+                                                <span style={{ fontSize: '0.85rem', color: '#C9A96E', fontWeight: 500 }}>{fmt(item.subtotal)}</span>
+                                            </div>
+                                        ))}
+
+                                        {v.descuento > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${c.border}` }}>
+                                                <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>Descuento</span>
+                                                <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>−{fmt(v.descuento)}</span>
+                                            </div>
+                                        )}
+
+                                        {!v.anulada && (
+                                            <button
+                                                onClick={() => anular(v.id)}
+                                                style={{
+                                                    marginTop: '0.5rem', padding: '0.5rem 1rem',
+                                                    background: 'transparent', border: '1px solid #F8717130',
+                                                    borderRadius: '8px', color: '#F87171',
+                                                    fontSize: '0.78rem', cursor: 'pointer', width: '100%',
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.background = '#F8717110'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                Anular venta
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
-        </div>
+        </>
     )
 }
