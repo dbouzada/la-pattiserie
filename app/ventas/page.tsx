@@ -99,7 +99,6 @@ export default function Ventas() {
                     'Subtotal': item.subtotal,
                     'Descuento': v.descuento > 0 ? v.descuento : '',
                     'Total venta': v.total,
-                    'Facturar': v.dni_cliente ? 'Sí' : 'No',
                 })
             })
         })
@@ -110,7 +109,7 @@ export default function Ventas() {
         ws['!cols'] = [
             { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 16 },
             { wch: 14 }, { wch: 35 }, { wch: 10 }, { wch: 10 },
-            { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 },
         ]
 
         const wb = XLSX.utils.book_new()
