@@ -6,6 +6,10 @@ import { TemaProvider } from '@/lib/theme'
 export const metadata: Metadata = {
   title: 'La Pattiserie',
   description: 'Sistema de gestión',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 export default function RootLayout({
@@ -24,3 +28,4 @@ export default function RootLayout({
     </html>
   )
 }
+
