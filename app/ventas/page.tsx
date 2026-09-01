@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useTema } from '@/lib/theme'
 import Link from 'next/link'
+import * as XLSX from 'xlsx'
 
 interface Venta {
     id: number
@@ -14,6 +15,7 @@ interface Venta {
     descuento: number
     anulada: boolean
     created_at: string
+    dni_cliente: string | null
     venta_items: {
         id: number
         producto_id: number
@@ -37,7 +39,8 @@ export default function Ventas() {
     const [ventas, setVentas] = useState<Venta[]>([])
     const [loading, setLoading] = useState(true)
     const [expandida, setExpandida] = useState<number | null>(null)
-    const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+    const [fechaDesde, setFechaDesde] = useState(new Date().toISOString().split('T')[0])
+    const [fechaHasta, setFechaHasta] = useState(new Date().toISOString().split('T')[0])
 
     const c = {
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
@@ -53,13 +56,14 @@ export default function Ventas() {
         const { data } = await supabase
             .from('ventas')
             .select(`*, venta_items(id, producto_id, cantidad, gramos, subtotal, productos(nombre))`)
-            .eq('fecha', fecha)
+            .gte('fecha', fechaDesde)
+            .lte('fecha', fechaHasta)
             .order('created_at', { ascending: false })
         setVentas(data || [])
         setLoading(false)
     }
 
-    useEffect(() => { cargar() }, [fecha])
+    useEffect(() => { cargar() }, [fechaDesde, fechaHasta])
 
     const anular = async (id: number) => {
         if (!confirm('¿Anular esta venta? Se revertirá el stock.')) return
@@ -78,6 +82,49 @@ export default function Ventas() {
         await cargar()
     }
 
+    const exportarExcel = () => {
+        const filas: any[] = []
+
+        ventas.filter(v => !v.anulada).forEach(v => {
+            v.venta_items.forEach(item => {
+                filas.push({
+                    'Fecha': v.fecha,
+                    'Hora': new Date(v.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                    'ID Venta': v.id,
+                    'Tipo de venta': MEDIOS[v.medio_pago]?.label || v.medio_pago,
+                    'DNI / CUIT': v.dni_cliente || '',
+                    'Producto': item.productos?.nombre || '',
+                    'Cantidad': item.cantidad || '',
+                    'Gramos': item.gramos || '',
+                    'Subtotal': item.subtotal,
+                    'Descuento': v.descuento > 0 ? v.descuento : '',
+                    'Total venta': v.total,
+                    'Facturar': v.dni_cliente ? 'Sí' : 'No',
+                })
+            })
+        })
+
+        const ws = XLSX.utils.json_to_sheet(filas)
+
+        // Ancho de columnas
+        ws['!cols'] = [
+            { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 16 },
+            { wch: 14 }, { wch: 35 }, { wch: 10 }, { wch: 10 },
+            { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 },
+        ]
+
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Ventas')
+
+        const desde = fechaDesde.replace(/-/g, '')
+        const hasta = fechaHasta.replace(/-/g, '')
+        const nombre = fechaDesde === fechaHasta
+            ? `Ventas_${desde}.xlsx`
+            : `Ventas_${desde}_${hasta}.xlsx`
+
+        XLSX.writeFile(wb, nombre)
+    }
+
     const fmt = (n: number) =>
         new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 
@@ -91,35 +138,61 @@ export default function Ventas() {
         <>
             <style>{`
         .ventas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .fecha-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
         @media (max-width: 768px) {
           .ventas-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 480px) {
           .ventas-grid { grid-template-columns: 1fr; }
+          .fecha-row { gap: 0.375rem; }
         }
       `}</style>
 
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Ventas</h1>
                         <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
                             {ventasActivas.length} ticket{ventasActivas.length !== 1 ? 's' : ''} · {fmt(total)}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="fecha-row">
                         <input
                             type="date"
-                            value={fecha}
-                            onChange={e => setFecha(e.target.value)}
+                            value={fechaDesde}
+                            onChange={e => setFechaDesde(e.target.value)}
                             style={{
                                 background: c.card, border: `1px solid ${c.border}`,
                                 borderRadius: '10px', padding: '0.5rem 0.875rem',
                                 color: c.text, fontSize: '0.85rem', outline: 'none',
                             }}
                         />
+                        <span style={{ color: c.muted, fontSize: '0.85rem' }}>→</span>
+                        <input
+                            type="date"
+                            value={fechaHasta}
+                            onChange={e => setFechaHasta(e.target.value)}
+                            style={{
+                                background: c.card, border: `1px solid ${c.border}`,
+                                borderRadius: '10px', padding: '0.5rem 0.875rem',
+                                color: c.text, fontSize: '0.85rem', outline: 'none',
+                            }}
+                        />
+                        <button
+                            onClick={exportarExcel}
+                            style={{
+                                padding: '0.5rem 1rem', background: c.card,
+                                border: `1px solid ${c.border}`, borderRadius: '10px',
+                                color: c.muted, fontSize: '0.85rem', cursor: 'pointer',
+                                whiteSpace: 'nowrap', transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ADE8050'; e.currentTarget.style.color = '#4ADE80' }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
+                        >
+                            ↓ Excel
+                        </button>
                         <Link href="/ventas/nueva" style={{
                             background: '#C9A96E', color: '#0F1A09',
                             padding: '0.5rem 1.1rem', borderRadius: '10px',
@@ -134,7 +207,7 @@ export default function Ventas() {
                 {/* KPIs */}
                 <div className="ventas-grid">
                     {[
-                        { label: 'Total del día', value: fmt(total), color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
+                        { label: 'Total del período', value: fmt(total), color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
                         { label: 'Tickets', value: ventasActivas.length, color: '#60A5FA', bg: '#60A5FA10', border: '#60A5FA25' },
                         { label: 'Anuladas', value: ventas.filter(v => v.anulada).length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
                     ].map(k => (
@@ -156,7 +229,7 @@ export default function Ventas() {
                         borderRadius: '16px', padding: '3rem',
                         textAlign: 'center', color: c.muted2, fontSize: '0.875rem',
                     }}>
-                        Sin ventas para esta fecha
+                        Sin ventas para este período
                     </div>
                 )}
 
@@ -182,8 +255,8 @@ export default function Ventas() {
                                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.78rem', color: c.muted, fontVariantNumeric: 'tabular-nums' }}>
-                                            {hora(v.created_at)}
+                                        <span style={{ fontSize: '0.75rem', color: c.muted2 }}>
+                                            {v.fecha !== new Date().toISOString().split('T')[0] ? v.fecha + ' · ' : ''}{hora(v.created_at)}
                                         </span>
                                         <span style={{
                                             fontSize: '0.72rem', padding: '0.2rem 0.6rem',
@@ -208,6 +281,15 @@ export default function Ventas() {
                                                 color: '#A78BFA', fontWeight: 500,
                                             }}>
                                                 desc.
+                                            </span>
+                                        )}
+                                        {v.dni_cliente && (
+                                            <span style={{
+                                                fontSize: '0.72rem', padding: '0.2rem 0.6rem',
+                                                borderRadius: '6px', background: '#34D39920',
+                                                color: '#34D399', fontWeight: 500,
+                                            }}>
+                                                DNI {v.dni_cliente}
                                             </span>
                                         )}
                                         <span style={{ fontSize: '0.78rem', color: c.muted2 }}>
@@ -240,6 +322,13 @@ export default function Ventas() {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: `1px solid ${c.border}` }}>
                                                 <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>Descuento</span>
                                                 <span style={{ fontSize: '0.85rem', color: '#A78BFA' }}>−{fmt(v.descuento)}</span>
+                                            </div>
+                                        )}
+
+                                        {v.dni_cliente && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.25rem' }}>
+                                                <span style={{ fontSize: '0.78rem', color: c.muted }}>DNI / CUIT</span>
+                                                <span style={{ fontSize: '0.78rem', color: '#34D399' }}>{v.dni_cliente}</span>
                                             </div>
                                         )}
 
