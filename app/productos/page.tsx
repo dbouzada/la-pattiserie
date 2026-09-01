@@ -17,6 +17,17 @@ interface Producto {
     activo: boolean
 }
 
+const productoVacio = {
+    nombre: '',
+    stock: 0,
+    costo: 0,
+    packaging: 0,
+    precio_kg: null as number | null,
+    precio_venta: 0,
+    venta_por: 'unidad',
+    activo: true,
+}
+
 export default function Productos() {
     const { tema } = useTema()
     const [productos, setProductos] = useState<Producto[]>([])
@@ -24,6 +35,8 @@ export default function Productos() {
     const [editando, setEditando] = useState<Producto | null>(null)
     const [guardando, setGuardando] = useState(false)
     const [busqueda, setBusqueda] = useState('')
+    const [modalNuevo, setModalNuevo] = useState(false)
+    const [formNuevo, setFormNuevo] = useState(productoVacio)
 
     const c = {
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
@@ -52,9 +65,30 @@ export default function Productos() {
             costo: editando.costo,
             packaging: editando.packaging,
             activo: editando.activo,
+            venta_por: editando.venta_por,
+            nombre: editando.nombre,
         }).eq('id', editando.id)
         await cargar()
         setEditando(null)
+        setGuardando(false)
+    }
+
+    const crearProducto = async () => {
+        if (!formNuevo.nombre.trim()) return
+        setGuardando(true)
+        await supabase.from('productos').insert({
+            nombre: formNuevo.nombre,
+            stock: formNuevo.stock,
+            costo: formNuevo.costo,
+            packaging: formNuevo.packaging,
+            precio_venta: formNuevo.precio_venta,
+            precio_kg: formNuevo.venta_por === 'gramos' ? formNuevo.precio_kg : null,
+            venta_por: formNuevo.venta_por,
+            activo: true,
+        })
+        await cargar()
+        setModalNuevo(false)
+        setFormNuevo(productoVacio)
         setGuardando(false)
     }
 
@@ -67,6 +101,27 @@ export default function Productos() {
     const filtrados = productos.filter(p =>
         p.nombre.toLowerCase().includes(busqueda.toLowerCase())
     )
+
+    const inputStyle = {
+        width: '100%',
+        background: c.input,
+        border: `1px solid ${c.border}`,
+        borderRadius: '10px',
+        padding: '0.75rem 1rem',
+        color: c.text,
+        fontSize: '0.9rem',
+        outline: 'none',
+        boxSizing: 'border-box' as const,
+    }
+
+    const labelStyle = {
+        fontSize: '0.72rem',
+        color: c.muted,
+        display: 'block',
+        marginBottom: '0.375rem',
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.06em',
+    }
 
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
@@ -94,20 +149,33 @@ export default function Productos() {
                             {productos.length} productos · {productos.filter(p => p.activo).length} activos
                         </p>
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Buscar..."
-                        value={busqueda}
-                        onChange={e => setBusqueda(e.target.value)}
-                        style={{
-                            background: c.card, border: `1px solid ${c.border}`,
-                            borderRadius: '10px', padding: '0.5rem 1rem',
-                            color: c.text, fontSize: '0.85rem', outline: 'none',
-                            width: '100%', maxWidth: '220px', boxSizing: 'border-box' as const,
-                        }}
-                        onFocus={e => e.target.style.borderColor = '#C9A96E50'}
-                        onBlur={e => e.target.style.borderColor = c.border}
-                    />
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <input
+                            type="text"
+                            placeholder="Buscar..."
+                            value={busqueda}
+                            onChange={e => setBusqueda(e.target.value)}
+                            style={{
+                                background: c.card, border: `1px solid ${c.border}`,
+                                borderRadius: '10px', padding: '0.5rem 1rem',
+                                color: c.text, fontSize: '0.85rem', outline: 'none',
+                                width: '180px', boxSizing: 'border-box' as const,
+                            }}
+                            onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                            onBlur={e => e.target.style.borderColor = c.border}
+                        />
+                        <button
+                            onClick={() => setModalNuevo(true)}
+                            style={{
+                                background: '#C9A96E', color: '#0F1A09',
+                                border: 'none', borderRadius: '10px',
+                                padding: '0.5rem 1.1rem', fontSize: '0.85rem',
+                                fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                        >
+                            + Nuevo producto
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tabla */}
@@ -116,6 +184,7 @@ export default function Productos() {
                         <thead>
                             <tr style={{ borderBottom: `1px solid ${c.border}` }}>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Producto</th>
+                                <th style={{ padding: '0.875rem 1rem', textAlign: 'center', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Venta por</th>
                                 <th className="col-costo" style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Costo</th>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Precio</th>
                                 <th className="col-margen" style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Margen</th>
@@ -133,8 +202,23 @@ export default function Productos() {
                                         opacity: p.activo ? 1 : 0.4,
                                     }}>
                                         <td style={{ padding: '0.875rem 1rem', color: c.text, fontWeight: 500, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</td>
+                                        <td style={{ padding: '0.875rem 1rem', textAlign: 'center' }}>
+                                            <span style={{
+                                                fontSize: '0.72rem', padding: '0.2rem 0.6rem', borderRadius: '6px',
+                                                background: p.venta_por === 'gramos' ? '#60A5FA20' : '#C9A96E20',
+                                                color: p.venta_por === 'gramos' ? '#60A5FA' : '#C9A96E',
+                                                fontWeight: 500,
+                                            }}>
+                                                {p.venta_por === 'gramos' ? 'gramos' : 'unidad'}
+                                            </span>
+                                        </td>
                                         <td className="col-costo" style={{ padding: '0.875rem 1rem', textAlign: 'right', color: c.muted }}>{fmt(p.costo_total)}</td>
-                                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right', color: '#C9A96E', fontWeight: 600 }}>{fmt(p.precio_venta)}</td>
+                                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right', color: '#C9A96E', fontWeight: 600 }}>
+                                            {p.venta_por === 'gramos' && p.precio_kg
+                                                ? `${fmt(p.precio_kg)}/kg`
+                                                : fmt(p.precio_venta)
+                                            }
+                                        </td>
                                         <td className="col-margen" style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
                                             <span style={{ color: m >= 50 ? '#4ADE80' : m >= 35 ? '#C9A96E' : '#F87171', fontWeight: 500 }}>
                                                 {m}%
@@ -161,7 +245,6 @@ export default function Productos() {
                                                     background: 'transparent', border: `1px solid ${c.border}`,
                                                     borderRadius: '8px', padding: '0.3rem 0.75rem',
                                                     color: c.muted, fontSize: '0.78rem', cursor: 'pointer',
-                                                    whiteSpace: 'nowrap',
                                                 }}
                                                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#C9A96E50'; e.currentTarget.style.color = '#C9A96E' }}
                                                 onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.color = c.muted }}
@@ -176,7 +259,7 @@ export default function Productos() {
                     </table>
                 </div>
 
-                {/* Modal */}
+                {/* Modal editar */}
                 {editando && (
                     <div style={{
                         position: 'fixed', inset: 0, background: '#00000080',
@@ -191,30 +274,57 @@ export default function Productos() {
                             maxHeight: '90vh', overflowY: 'auto',
                         }}>
                             <div>
-                                <h2 style={{ fontSize: '1rem', fontWeight: 600, color: c.text }}>{editando.nombre}</h2>
-                                <p style={{ fontSize: '0.78rem', color: c.muted, marginTop: '0.2rem' }}>Editando precio y costos</p>
+                                <h2 style={{ fontSize: '1rem', fontWeight: 600, color: c.text }}>Editar producto</h2>
+                                <p style={{ fontSize: '0.78rem', color: c.muted, marginTop: '0.2rem' }}>{editando.nombre}</p>
+                            </div>
+
+                            <div>
+                                <label style={labelStyle}>Nombre</label>
+                                <input
+                                    type="text"
+                                    value={editando.nombre}
+                                    onChange={e => setEditando({ ...editando, nombre: e.target.value })}
+                                    style={inputStyle}
+                                    onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                                    onBlur={e => e.target.style.borderColor = c.border}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={labelStyle}>Venta por</label>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {(['unidad', 'gramos'] as const).map(v => (
+                                        <button
+                                            key={v}
+                                            onClick={() => setEditando({ ...editando, venta_por: v })}
+                                            style={{
+                                                flex: 1, padding: '0.75rem',
+                                                borderRadius: '10px', fontSize: '0.85rem',
+                                                border: `1px solid ${editando.venta_por === v ? '#C9A96E60' : c.border}`,
+                                                background: editando.venta_por === v ? '#C9A96E20' : 'transparent',
+                                                color: editando.venta_por === v ? '#C9A96E' : c.muted,
+                                                cursor: 'pointer', fontWeight: editando.venta_por === v ? 600 : 400,
+                                            }}
+                                        >
+                                            {v === 'unidad' ? 'Por unidad' : 'Por gramos'}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             {[
                                 { label: 'Precio de venta', key: 'precio_venta' },
+                                { label: editando.venta_por === 'gramos' ? 'Precio por kg' : 'Precio por kg (opcional)', key: 'precio_kg' },
                                 { label: 'Costo', key: 'costo' },
                                 { label: 'Packaging', key: 'packaging' },
-                                { label: 'Precio por kg', key: 'precio_kg' },
                             ].map(({ label, key }) => (
                                 <div key={key}>
-                                    <label style={{ fontSize: '0.72rem', color: c.muted, display: 'block', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                                        {label}
-                                    </label>
+                                    <label style={labelStyle}>{label}</label>
                                     <input
                                         type="number"
                                         value={(editando as any)[key] || ''}
                                         onChange={e => setEditando({ ...editando, [key]: Number(e.target.value) })}
-                                        style={{
-                                            width: '100%', background: c.input,
-                                            border: `1px solid ${c.border}`, borderRadius: '10px',
-                                            padding: '0.75rem 1rem', color: c.text,
-                                            fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' as const,
-                                        }}
+                                        style={inputStyle}
                                         onFocus={e => e.target.style.borderColor = '#C9A96E50'}
                                         onBlur={e => e.target.style.borderColor = c.border}
                                     />
@@ -261,6 +371,111 @@ export default function Productos() {
                                     }}
                                 >
                                     {guardando ? 'Guardando...' : 'Guardar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal nuevo producto */}
+                {modalNuevo && (
+                    <div style={{
+                        position: 'fixed', inset: 0, background: '#00000080',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 50, padding: '1rem', backdropFilter: 'blur(4px)',
+                    }}>
+                        <div style={{
+                            background: c.card, border: `1px solid ${c.border}`,
+                            borderRadius: '20px', padding: '2rem',
+                            width: '100%', maxWidth: '420px',
+                            display: 'flex', flexDirection: 'column', gap: '1rem',
+                            maxHeight: '90vh', overflowY: 'auto',
+                        }}>
+                            <div>
+                                <h2 style={{ fontSize: '1rem', fontWeight: 600, color: c.text }}>Nuevo producto</h2>
+                                <p style={{ fontSize: '0.78rem', color: c.muted, marginTop: '0.2rem' }}>Completá los datos del producto</p>
+                            </div>
+
+                            <div>
+                                <label style={labelStyle}>Nombre *</label>
+                                <input
+                                    type="text"
+                                    value={formNuevo.nombre}
+                                    onChange={e => setFormNuevo({ ...formNuevo, nombre: e.target.value })}
+                                    placeholder="Ej: Medialunas dulces x 1/4 kg"
+                                    style={inputStyle}
+                                    onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                                    onBlur={e => e.target.style.borderColor = c.border}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={labelStyle}>Venta por</label>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {(['unidad', 'gramos'] as const).map(v => (
+                                        <button
+                                            key={v}
+                                            onClick={() => setFormNuevo({ ...formNuevo, venta_por: v })}
+                                            style={{
+                                                flex: 1, padding: '0.75rem',
+                                                borderRadius: '10px', fontSize: '0.85rem',
+                                                border: `1px solid ${formNuevo.venta_por === v ? '#C9A96E60' : c.border}`,
+                                                background: formNuevo.venta_por === v ? '#C9A96E20' : 'transparent',
+                                                color: formNuevo.venta_por === v ? '#C9A96E' : c.muted,
+                                                cursor: 'pointer', fontWeight: formNuevo.venta_por === v ? 600 : 400,
+                                            }}
+                                        >
+                                            {v === 'unidad' ? 'Por unidad' : 'Por gramos'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {[
+                                { label: 'Precio de venta *', key: 'precio_venta', placeholder: formNuevo.venta_por === 'gramos' ? 'Precio por presentación' : 'Precio por unidad' },
+                                { label: 'Precio por kg', key: 'precio_kg', placeholder: 'Solo para productos por gramos', show: formNuevo.venta_por === 'gramos' },
+                                { label: 'Costo', key: 'costo', placeholder: '0' },
+                                { label: 'Packaging', key: 'packaging', placeholder: '0' },
+                                { label: 'Stock inicial', key: 'stock', placeholder: '0' },
+                            ].filter(f => f.show !== false).map(({ label, key, placeholder }) => (
+                                <div key={key}>
+                                    <label style={labelStyle}>{label}</label>
+                                    <input
+                                        type="number"
+                                        value={(formNuevo as any)[key] || ''}
+                                        onChange={e => setFormNuevo({ ...formNuevo, [key]: Number(e.target.value) })}
+                                        placeholder={placeholder}
+                                        style={inputStyle}
+                                        onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                                        onBlur={e => e.target.style.borderColor = c.border}
+                                    />
+                                </div>
+                            ))}
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    onClick={() => { setModalNuevo(false); setFormNuevo(productoVacio) }}
+                                    style={{
+                                        flex: 1, padding: '0.75rem', background: 'transparent',
+                                        border: `1px solid ${c.border}`, borderRadius: '10px',
+                                        color: c.muted, fontSize: '0.875rem', cursor: 'pointer',
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={crearProducto}
+                                    disabled={guardando || !formNuevo.nombre.trim()}
+                                    style={{
+                                        flex: 1, padding: '0.75rem',
+                                        background: !formNuevo.nombre.trim() ? c.card2 : '#C9A96E',
+                                        border: 'none', borderRadius: '10px',
+                                        color: !formNuevo.nombre.trim() ? c.muted2 : '#0F1A09',
+                                        fontSize: '0.875rem', fontWeight: 600,
+                                        cursor: !formNuevo.nombre.trim() ? 'not-allowed' : 'pointer',
+                                    }}
+                                >
+                                    {guardando ? 'Creando...' : 'Crear producto'}
                                 </button>
                             </div>
                         </div>

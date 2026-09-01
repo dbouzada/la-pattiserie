@@ -28,6 +28,8 @@ const MEDIOS = [
     { key: 'pedidosya', label: 'Pedidos Ya', color: '#F87171' },
 ]
 
+const MEDIOS_CON_DNI = ['tarjeta', 'transferencia', 'mercadopago']
+
 export default function NuevaVenta() {
     const { tema } = useTema()
     const [productos, setProductos] = useState<Producto[]>([])
@@ -36,6 +38,7 @@ export default function NuevaVenta() {
     const [medio, setMedio] = useState('efectivo')
     const [descuentoTipo, setDescuentoTipo] = useState<'monto' | 'porcentaje'>('monto')
     const [descuentoValor, setDescuentoValor] = useState<number>(0)
+    const [dni, setDni] = useState('')
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
 
@@ -84,6 +87,15 @@ export default function NuevaVenta() {
         ))
     }
 
+    const actualizarGramos = (id: number, gramos: number) => {
+        setCarrito(carrito.map(i => {
+            if (i.producto.id !== id) return i
+            const precioKg = i.producto.precio_kg || i.producto.precio_venta
+            const subtotal = Math.round((gramos / 1000) * precioKg)
+            return { ...i, gramos, subtotal }
+        }))
+    }
+
     const subtotalBruto = carrito.reduce((acc, i) => acc + i.subtotal, 0)
     const montoDescuento = descuentoTipo === 'porcentaje'
         ? Math.round(subtotalBruto * (descuentoValor / 100))
@@ -96,16 +108,21 @@ export default function NuevaVenta() {
     const confirmar = async () => {
         if (carrito.length === 0) return
         setGuardando(true)
+
         const { data: venta, error } = await supabase
             .from('ventas')
             .insert({
-                medio_pago: medio, total,
+                medio_pago: medio,
+                total,
                 descuento: montoDescuento,
                 descuento_tipo: descuentoTipo,
                 total_antes_descuento: subtotalBruto,
+                dni_cliente: MEDIOS_CON_DNI.includes(medio) ? dni || null : null,
             })
             .select().single()
+
         if (error || !venta) { setGuardando(false); return }
+
         await supabase.from('venta_items').insert(
             carrito.map(i => ({
                 venta_id: venta.id,
@@ -116,15 +133,18 @@ export default function NuevaVenta() {
                 subtotal: i.subtotal,
             }))
         )
+
         for (const item of carrito) {
             await supabase.rpc('decrementar_stock', {
                 p_id: item.producto.id,
-                p_cantidad: item.cantidad,
+                p_cantidad: item.producto.venta_por === 'gramos' ? 1 : item.cantidad,
             })
         }
+
         setCarrito([])
         setMedio('efectivo')
         setDescuentoValor(0)
+        setDni('')
         setGuardando(false)
         setExito(true)
         setTimeout(() => setExito(false), 3000)
@@ -200,8 +220,18 @@ export default function NuevaVenta() {
                                     onMouseEnter={e => (e.currentTarget.style.background = c.card2)}
                                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                                 >
-                                    <span style={{ fontSize: '0.9rem' }}>{p.nombre}</span>
-                                    <span style={{ fontSize: '0.9rem', color: '#C9A96E', fontWeight: 600, flexShrink: 0, marginLeft: '0.5rem' }}>{fmt(p.precio_venta)}</span>
+                                    <div>
+                                        <span style={{ fontSize: '0.9rem' }}>{p.nombre}</span>
+                                        {p.venta_por === 'gramos' && (
+                                            <span style={{ fontSize: '0.75rem', color: '#60A5FA', marginLeft: '0.5rem' }}>por gramos</span>
+                                        )}
+                                    </div>
+                                    <span style={{ fontSize: '0.9rem', color: '#C9A96E', fontWeight: 600, flexShrink: 0, marginLeft: '0.5rem' }}>
+                                        {p.venta_por === 'gramos' && p.precio_kg
+                                            ? `${fmt(p.precio_kg)}/kg`
+                                            : fmt(p.precio_venta)
+                                        }
+                                    </span>
                                 </button>
                             ))}
                         </div>
@@ -225,29 +255,57 @@ export default function NuevaVenta() {
                                         {fmt(item.subtotal)}
                                     </p>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-                                    <button
-                                        onClick={() => actualizarCantidad(item.producto.id, item.cantidad - 1)}
-                                        style={{
-                                            width: '32px', height: '32px', borderRadius: '8px',
-                                            background: c.card2, border: `1px solid ${c.border}`,
-                                            color: c.text, fontSize: '1.1rem', cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        }}
-                                    >−</button>
-                                    <span style={{ color: c.text, fontSize: '0.9rem', width: '24px', textAlign: 'center', fontWeight: 600 }}>
-                                        {item.cantidad}
-                                    </span>
-                                    <button
-                                        onClick={() => actualizarCantidad(item.producto.id, item.cantidad + 1)}
-                                        style={{
-                                            width: '32px', height: '32px', borderRadius: '8px',
-                                            background: c.card2, border: `1px solid ${c.border}`,
-                                            color: c.text, fontSize: '1.1rem', cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        }}
-                                    >+</button>
-                                </div>
+
+                                {item.producto.venta_por === 'gramos' ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+                                        <input
+                                            type="number"
+                                            value={item.gramos || ''}
+                                            onChange={e => actualizarGramos(item.producto.id, Number(e.target.value))}
+                                            placeholder="0"
+                                            style={{
+                                                width: '72px', background: c.card2,
+                                                border: `1px solid ${c.border}`, borderRadius: '8px',
+                                                padding: '0.375rem 0.5rem', color: c.text,
+                                                fontSize: '0.875rem', outline: 'none', textAlign: 'right',
+                                            }}
+                                        />
+                                        <span style={{ fontSize: '0.75rem', color: c.muted }}>g</span>
+                                        <button
+                                            onClick={() => setCarrito(carrito.filter(i => i.producto.id !== item.producto.id))}
+                                            style={{
+                                                width: '28px', height: '28px', borderRadius: '8px',
+                                                background: '#F8717115', border: '1px solid #F8717130',
+                                                color: '#F87171', fontSize: '0.9rem', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                        >✕</button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+                                        <button
+                                            onClick={() => actualizarCantidad(item.producto.id, item.cantidad - 1)}
+                                            style={{
+                                                width: '32px', height: '32px', borderRadius: '8px',
+                                                background: c.card2, border: `1px solid ${c.border}`,
+                                                color: c.text, fontSize: '1.1rem', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                        >−</button>
+                                        <span style={{ color: c.text, fontSize: '0.9rem', width: '24px', textAlign: 'center', fontWeight: 600 }}>
+                                            {item.cantidad}
+                                        </span>
+                                        <button
+                                            onClick={() => actualizarCantidad(item.producto.id, item.cantidad + 1)}
+                                            style={{
+                                                width: '32px', height: '32px', borderRadius: '8px',
+                                                background: c.card2, border: `1px solid ${c.border}`,
+                                                color: c.text, fontSize: '1.1rem', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                        >+</button>
+                                    </div>
+                                )}
                             </div>
                         ))}
 
@@ -341,6 +399,32 @@ export default function NuevaVenta() {
                         ))}
                     </div>
                 </div>
+
+                {/* DNI — solo para tarjeta, transferencia y MP */}
+                {MEDIOS_CON_DNI.includes(medio) && (
+                    <div>
+                        <label style={{
+                            fontSize: '0.72rem', color: c.muted, display: 'block',
+                            marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em',
+                        }}>
+                            DNI / CUIT del cliente <span style={{ color: c.muted2, fontWeight: 400 }}>(para facturación)</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={dni}
+                            onChange={e => setDni(e.target.value)}
+                            placeholder="Ej: 30123456 o 20-30123456-7"
+                            style={{
+                                width: '100%', background: c.input,
+                                border: `1px solid ${c.border}`, borderRadius: '12px',
+                                padding: '0.875rem 1rem', color: c.text,
+                                fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' as const,
+                            }}
+                            onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                            onBlur={e => e.target.style.borderColor = c.border}
+                        />
+                    </div>
+                )}
 
                 {/* Botón confirmar */}
                 <button
