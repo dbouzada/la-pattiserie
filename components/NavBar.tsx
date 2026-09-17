@@ -16,6 +16,7 @@ const links = [
     { href: '/stock', label: 'Stock', icon: '◧' },
     { href: '/caja', label: 'Caja', icon: '◎' },
     { href: '/clientes', label: 'Clientes', icon: '◑' },
+    { href: '/socios', label: 'Socios', icon: '★' },
 ]
 
 export default function NavBar() {

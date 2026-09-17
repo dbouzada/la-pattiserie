@@ -26,9 +26,10 @@ const MEDIOS = [
     { key: 'transferencia', label: 'Transferencia', color: '#A78BFA' },
     { key: 'mercadopago', label: 'Mercado Pago', color: '#34D399' },
     { key: 'pedidosya', label: 'Pedidos Ya', color: '#F87171' },
+    { key: 'rappi', label: 'Rappi', color: '#FF6B35' },
 ]
 
-const MEDIOS_CON_DNI = ['tarjeta', 'transferencia', 'mercadopago']
+const MEDIOS_CON_DNI = ['tarjeta', 'transferencia', 'mercadopago', 'rappi']
 
 export default function NuevaVenta() {
     const { tema } = useTema()

@@ -32,6 +32,7 @@ const MEDIOS: Record<string, { label: string; color: string }> = {
     transferencia: { label: 'Transferencia', color: '#A78BFA' },
     mercadopago: { label: 'Mercado Pago', color: '#34D399' },
     pedidosya: { label: 'Pedidos Ya', color: '#F87171' },
+    rappi: { label: 'Rappi', color: '#FF6B35' },
 }
 
 export default function Ventas() {
