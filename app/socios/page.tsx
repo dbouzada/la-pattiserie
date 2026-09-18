@@ -13,6 +13,9 @@ interface Socio {
     observaciones: string | null
     activo: boolean
     created_at: string
+    cantidad_compras: number
+    total_vendido: number
+    ultima_compra: string | null
 }
 
 const socioVacio = {
@@ -32,6 +35,8 @@ export default function Socios() {
     const [editando, setEditando] = useState<Socio | null>(null)
     const [form, setForm] = useState(socioVacio)
     const [guardando, setGuardando] = useState(false)
+    const [fechaDesde, setFechaDesde] = useState('')
+    const [fechaHasta, setFechaHasta] = useState('')
 
     const c = {
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
@@ -44,15 +49,54 @@ export default function Socios() {
     }
 
     const cargar = async () => {
-        const { data } = await supabase
-            .from('socios')
-            .select('*')
-            .order('numero_socio', { ascending: true })
-        setSocios(data || [])
+        setLoading(true)
+
+        if (fechaDesde && fechaHasta) {
+            // Con rango de fechas — consultamos ventas del período
+            const { data: ventasPeriodo } = await supabase
+                .from('ventas')
+                .select('socio_id, total')
+                .gte('fecha', fechaDesde)
+                .lte('fecha', fechaHasta)
+                .eq('anulada', false)
+                .not('socio_id', 'is', null)
+
+            const { data: baseSocios } = await supabase
+                .from('socios')
+                .select('*')
+                .order('numero_socio', { ascending: true })
+
+            // Calcular totales del período por socio
+            const totalesPeriodo: Record<number, { cantidad: number; total: number }> = {}
+            ventasPeriodo?.forEach(v => {
+                if (v.socio_id) {
+                    if (!totalesPeriodo[v.socio_id]) totalesPeriodo[v.socio_id] = { cantidad: 0, total: 0 }
+                    totalesPeriodo[v.socio_id].cantidad += 1
+                    totalesPeriodo[v.socio_id].total += v.total
+                }
+            })
+
+            const sociosConTotales = (baseSocios || []).map(s => ({
+                ...s,
+                cantidad_compras: totalesPeriodo[s.numero_socio]?.cantidad || 0,
+                total_vendido: totalesPeriodo[s.numero_socio]?.total || 0,
+                ultima_compra: null,
+            }))
+
+            setSocios(sociosConTotales)
+        } else {
+            // Sin filtro — usamos la vista con totales históricos
+            const { data } = await supabase
+                .from('socios_resumen')
+                .select('*')
+                .order('numero_socio', { ascending: true })
+            setSocios(data || [])
+        }
+
         setLoading(false)
     }
 
-    useEffect(() => { cargar() }, [])
+    useEffect(() => { cargar() }, [fechaDesde, fechaHasta])
 
     const abrirNuevo = () => {
         setEditando(null)
@@ -97,12 +141,20 @@ export default function Socios() {
         await cargar()
     }
 
+    const limpiarFiltro = () => {
+        setFechaDesde('')
+        setFechaHasta('')
+    }
+
     const filtrados = socios.filter(s =>
         s.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         s.mail?.toLowerCase().includes(busqueda.toLowerCase()) ||
         s.telefono?.includes(busqueda) ||
         s.numero_socio.toString().includes(busqueda)
     )
+
+    const fmt = (n: number) =>
+        new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 
     const inputStyle = {
         width: '100%',
@@ -132,36 +184,40 @@ export default function Socios() {
         </div>
     )
 
+    const totalVendidoSocios = filtrados.reduce((a, s) => a + (s.total_vendido || 0), 0)
+
     return (
         <>
             <style>{`
-        .socios-col-dir, .socios-col-obs { display: table-cell; }
+        .socios-col-dir, .socios-col-obs, .socios-col-compras { display: table-cell; }
+        .fecha-socios { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
         @media (max-width: 768px) {
-          .socios-col-dir, .socios-col-obs { display: none; }
+          .socios-col-dir, .socios-col-obs, .socios-col-compras { display: none; }
         }
       `}</style>
 
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '1.5rem 1rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: c.text, letterSpacing: '-0.03em' }}>Club de Socios</h1>
                         <p style={{ fontSize: '0.8rem', color: c.muted, marginTop: '0.2rem' }}>
                             {socios.length} socios · {socios.filter(s => s.activo).length} activos
+                            {(fechaDesde && fechaHasta) && <span style={{ color: '#C9A96E' }}> · período filtrado</span>}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         <input
                             type="text"
-                            placeholder="Buscar por nombre, mail, N° socio..."
+                            placeholder="Buscar..."
                             value={busqueda}
                             onChange={e => setBusqueda(e.target.value)}
                             style={{
                                 background: c.card, border: `1px solid ${c.border}`,
                                 borderRadius: '10px', padding: '0.5rem 1rem',
                                 color: c.text, fontSize: '0.85rem', outline: 'none',
-                                width: '100%', maxWidth: '260px', boxSizing: 'border-box' as const,
+                                width: '180px', boxSizing: 'border-box' as const,
                             }}
                             onFocus={e => e.target.style.borderColor = '#C9A96E50'}
                             onBlur={e => e.target.style.borderColor = c.border}
@@ -180,19 +236,65 @@ export default function Socios() {
                     </div>
                 </div>
 
+                {/* Filtro de fechas */}
+                <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '14px', padding: '1rem 1.25rem' }}>
+                    <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
+                        Filtrar por período de compras
+                    </p>
+                    <div className="fecha-socios">
+                        <input
+                            type="date"
+                            value={fechaDesde}
+                            onChange={e => setFechaDesde(e.target.value)}
+                            style={{
+                                background: c.card2, border: `1px solid ${c.border}`,
+                                borderRadius: '10px', padding: '0.5rem 0.875rem',
+                                color: c.text, fontSize: '0.85rem', outline: 'none',
+                            }}
+                        />
+                        <span style={{ color: c.muted, fontSize: '0.85rem' }}>→</span>
+                        <input
+                            type="date"
+                            value={fechaHasta}
+                            onChange={e => setFechaHasta(e.target.value)}
+                            style={{
+                                background: c.card2, border: `1px solid ${c.border}`,
+                                borderRadius: '10px', padding: '0.5rem 0.875rem',
+                                color: c.text, fontSize: '0.85rem', outline: 'none',
+                            }}
+                        />
+                        {(fechaDesde || fechaHasta) && (
+                            <button
+                                onClick={limpiarFiltro}
+                                style={{
+                                    padding: '0.5rem 0.875rem', background: 'transparent',
+                                    border: `1px solid ${c.border}`, borderRadius: '10px',
+                                    color: c.muted, fontSize: '0.8rem', cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                Limpiar filtro
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 {/* KPIs */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                     {[
-                        { label: 'Total socios', value: socios.length, color: '#C9A96E', bg: '#C9A96E10', border: '#C9A96E25' },
-                        { label: 'Activos', value: socios.filter(s => s.activo).length, color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025' },
-                        { label: 'Inactivos', value: socios.filter(s => !s.activo).length, color: '#F87171', bg: '#F8717110', border: '#F8717125' },
+                        { label: 'Total socios', value: socios.length, color: '#C9A96E', bg: '#C9A96E10', border: '#C9A96E25', fmt: false },
+                        { label: 'Activos', value: socios.filter(s => s.activo).length, color: '#4ADE80', bg: '#4ADE8010', border: '#4ADE8025', fmt: false },
+                        { label: 'Total vendido', value: totalVendidoSocios, color: '#60A5FA', bg: '#60A5FA10', border: '#60A5FA25', fmt: true },
+                        { label: fechaDesde && fechaHasta ? 'Con compras en período' : 'Con compras', value: filtrados.filter(s => s.cantidad_compras > 0).length, color: '#A78BFA', bg: '#A78BFA10', border: '#A78BFA25', fmt: false },
                     ].map(k => (
                         <div key={k.label} style={{
                             background: k.bg, border: `1px solid ${k.border}`,
                             borderRadius: '16px', padding: '1rem 1.25rem',
                         }}>
                             <p style={{ fontSize: '0.68rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>{k.label}</p>
-                            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>{k.value}</p>
+                            <p style={{ fontSize: '1.2rem', fontWeight: 700, color: k.color, letterSpacing: '-0.03em' }}>
+                                {k.fmt ? fmt(k.value) : k.value}
+                            </p>
                         </div>
                     ))}
                 </div>
@@ -205,7 +307,8 @@ export default function Socios() {
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, whiteSpace: 'nowrap' }}>N° Socio</th>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Nombre</th>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Contacto</th>
-                                <th className="socios-col-dir" style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Dirección</th>
+                                <th className="socios-col-compras" style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Compras</th>
+                                <th style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Total vendido</th>
                                 <th className="socios-col-obs" style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Observaciones</th>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'center', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Estado</th>
                                 <th style={{ padding: '0.875rem 1rem' }}></th>
@@ -214,7 +317,7 @@ export default function Socios() {
                         <tbody>
                             {filtrados.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: c.muted2 }}>
+                                    <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: c.muted2 }}>
                                         {busqueda ? 'Sin resultados' : 'Sin socios registrados'}
                                     </td>
                                 </tr>
@@ -241,8 +344,15 @@ export default function Socios() {
                                             {!s.mail && !s.telefono && <span style={{ color: c.muted2 }}>—</span>}
                                         </div>
                                     </td>
-                                    <td className="socios-col-dir" style={{ padding: '0.875rem 1rem', color: c.muted, fontSize: '0.8rem', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {s.direccion || '—'}
+                                    <td className="socios-col-compras" style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                        <span style={{ color: s.cantidad_compras > 0 ? '#60A5FA' : c.muted2, fontWeight: 500 }}>
+                                            {s.cantidad_compras || 0}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                                        <span style={{ color: s.total_vendido > 0 ? '#4ADE80' : c.muted2, fontWeight: 600 }}>
+                                            {s.total_vendido > 0 ? fmt(s.total_vendido) : '—'}
+                                        </span>
                                     </td>
                                     <td className="socios-col-obs" style={{ padding: '0.875rem 1rem', color: c.muted, fontSize: '0.8rem', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {s.observaciones || '—'}

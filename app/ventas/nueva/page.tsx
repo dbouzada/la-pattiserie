@@ -20,6 +20,12 @@ interface ItemCarrito {
     subtotal: number
 }
 
+interface Socio {
+    numero_socio: number
+    nombre: string
+    mail: string | null
+}
+
 const MEDIOS = [
     { key: 'efectivo', label: 'Efectivo', color: '#C9A96E' },
     { key: 'tarjeta', label: 'Tarjeta', color: '#60A5FA' },
@@ -34,12 +40,16 @@ const MEDIOS_CON_DNI = ['tarjeta', 'transferencia', 'mercadopago', 'rappi']
 export default function NuevaVenta() {
     const { tema } = useTema()
     const [productos, setProductos] = useState<Producto[]>([])
+    const [socios, setSocios] = useState<Socio[]>([])
     const [busqueda, setBusqueda] = useState('')
+    const [busquedaSocio, setBusquedaSocio] = useState('')
     const [carrito, setCarrito] = useState<ItemCarrito[]>([])
     const [medio, setMedio] = useState('efectivo')
     const [descuentoTipo, setDescuentoTipo] = useState<'monto' | 'porcentaje'>('monto')
     const [descuentoValor, setDescuentoValor] = useState<number>(0)
     const [dni, setDni] = useState('')
+    const [esSocio, setEsSocio] = useState<boolean | null>(null)
+    const [socioSeleccionado, setSocioSeleccionado] = useState<Socio | null>(null)
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
 
@@ -56,10 +66,17 @@ export default function NuevaVenta() {
     useEffect(() => {
         supabase.from('productos').select('*').eq('activo', true).order('nombre')
             .then(({ data }) => setProductos(data || []))
+        supabase.from('socios').select('numero_socio, nombre, mail').eq('activo', true).order('nombre')
+            .then(({ data }) => setSocios(data || []))
     }, [])
 
     const filtrados = productos.filter(p =>
         p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    )
+
+    const sociosFiltrados = socios.filter(s =>
+        s.nombre.toLowerCase().includes(busquedaSocio.toLowerCase()) ||
+        s.numero_socio.toString().includes(busquedaSocio)
     )
 
     const agregarProducto = (p: Producto) => {
@@ -119,6 +136,7 @@ export default function NuevaVenta() {
                 descuento_tipo: descuentoTipo,
                 total_antes_descuento: subtotalBruto,
                 dni_cliente: MEDIOS_CON_DNI.includes(medio) ? dni || null : null,
+                socio_id: socioSeleccionado?.numero_socio || null,
             })
             .select().single()
 
@@ -146,6 +164,9 @@ export default function NuevaVenta() {
         setMedio('efectivo')
         setDescuentoValor(0)
         setDni('')
+        setEsSocio(null)
+        setSocioSeleccionado(null)
+        setBusquedaSocio('')
         setGuardando(false)
         setExito(true)
         setTimeout(() => setExito(false), 3000)
@@ -183,7 +204,7 @@ export default function NuevaVenta() {
                     </div>
                 )}
 
-                {/* Buscador */}
+                {/* Buscador productos */}
                 <div style={{ position: 'relative' }}>
                     <input
                         type="text"
@@ -401,13 +422,10 @@ export default function NuevaVenta() {
                     </div>
                 </div>
 
-                {/* DNI — solo para tarjeta, transferencia y MP */}
+                {/* DNI */}
                 {MEDIOS_CON_DNI.includes(medio) && (
                     <div>
-                        <label style={{
-                            fontSize: '0.72rem', color: c.muted, display: 'block',
-                            marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em',
-                        }}>
+                        <label style={{ fontSize: '0.72rem', color: c.muted, display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             DNI / CUIT del cliente <span style={{ color: c.muted2, fontWeight: 400 }}>(para facturación)</span>
                         </label>
                         <input
@@ -427,23 +445,142 @@ export default function NuevaVenta() {
                     </div>
                 )}
 
+                {/* ¿Es socio? */}
+                <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: '14px', padding: '1rem' }}>
+                    <p style={{ fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+                        ¿El cliente es socio?
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: esSocio === true ? '0.75rem' : 0 }}>
+                        {[
+                            { val: false, label: 'No es socio' },
+                            { val: true, label: 'Sí, es socio' },
+                        ].map(opt => (
+                            <button
+                                key={String(opt.val)}
+                                onClick={() => {
+                                    setEsSocio(opt.val)
+                                    if (!opt.val) { setSocioSeleccionado(null); setBusquedaSocio('') }
+                                }}
+                                style={{
+                                    flex: 1, padding: '0.625rem',
+                                    borderRadius: '10px', fontSize: '0.85rem',
+                                    border: `1px solid ${esSocio === opt.val ? (opt.val ? '#C9A96E60' : c.border) : c.border}`,
+                                    background: esSocio === opt.val ? (opt.val ? '#C9A96E20' : c.card2) : 'transparent',
+                                    color: esSocio === opt.val ? (opt.val ? '#C9A96E' : c.text) : c.muted,
+                                    cursor: 'pointer', fontWeight: esSocio === opt.val ? 600 : 400,
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Buscador de socios */}
+                    {esSocio === true && (
+                        <div style={{ position: 'relative' }}>
+                            {socioSeleccionado ? (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    background: '#C9A96E15', border: '1px solid #C9A96E40',
+                                    borderRadius: '10px', padding: '0.75rem 1rem',
+                                }}>
+                                    <div>
+                                        <p style={{ fontSize: '0.875rem', color: '#C9A96E', fontWeight: 600 }}>
+                                            #{socioSeleccionado.numero_socio.toString().padStart(4, '0')} — {socioSeleccionado.nombre}
+                                        </p>
+                                        {socioSeleccionado.mail && (
+                                            <p style={{ fontSize: '0.75rem', color: c.muted, marginTop: '0.1rem' }}>{socioSeleccionado.mail}</p>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => { setSocioSeleccionado(null); setBusquedaSocio('') }}
+                                        style={{
+                                            background: 'transparent', border: 'none',
+                                            color: c.muted, cursor: 'pointer', fontSize: '1rem',
+                                        }}
+                                    >✕</button>
+                                </div>
+                            ) : (
+                                <>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar socio por nombre o número..."
+                                        value={busquedaSocio}
+                                        onChange={e => setBusquedaSocio(e.target.value)}
+                                        autoFocus
+                                        style={{
+                                            width: '100%', background: c.input,
+                                            border: `1px solid ${c.border}`, borderRadius: '10px',
+                                            padding: '0.75rem 1rem', color: c.text,
+                                            fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' as const,
+                                        }}
+                                        onFocus={e => e.target.style.borderColor = '#C9A96E50'}
+                                        onBlur={e => e.target.style.borderColor = c.border}
+                                    />
+                                    {busquedaSocio && sociosFiltrados.length > 0 && (
+                                        <div style={{
+                                            position: 'absolute', zIndex: 10, width: '100%',
+                                            marginTop: '0.375rem', background: c.card,
+                                            border: `1px solid ${c.border}`, borderRadius: '10px',
+                                            overflow: 'hidden', boxShadow: '0 10px 30px #00000020',
+                                        }}>
+                                            {sociosFiltrados.slice(0, 6).map(s => (
+                                                <button
+                                                    key={s.numero_socio}
+                                                    onClick={() => { setSocioSeleccionado(s); setBusquedaSocio('') }}
+                                                    style={{
+                                                        width: '100%', textAlign: 'left',
+                                                        padding: '0.75rem 1rem', display: 'flex',
+                                                        justifyContent: 'space-between', alignItems: 'center',
+                                                        background: 'transparent', border: 'none',
+                                                        borderBottom: `1px solid ${c.border}`, cursor: 'pointer',
+                                                    }}
+                                                    onMouseEnter={e => (e.currentTarget.style.background = c.card2)}
+                                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                                >
+                                                    <span style={{ fontSize: '0.875rem', color: c.text }}>{s.nombre}</span>
+                                                    <span style={{ fontSize: '0.78rem', color: '#C9A96E', fontWeight: 600 }}>
+                                                        #{s.numero_socio.toString().padStart(4, '0')}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {busquedaSocio && sociosFiltrados.length === 0 && (
+                                        <div style={{
+                                            marginTop: '0.375rem', background: c.card,
+                                            border: `1px solid ${c.border}`, borderRadius: '10px',
+                                            padding: '0.75rem 1rem', color: c.muted2, fontSize: '0.85rem',
+                                        }}>
+                                            Sin resultados
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 {/* Botón confirmar */}
                 <button
                     onClick={confirmar}
-                    disabled={carrito.length === 0 || guardando}
+                    disabled={carrito.length === 0 || guardando || esSocio === null}
                     style={{
                         width: '100%', padding: '1.125rem',
-                        background: carrito.length === 0 || guardando ? c.card2 : '#C9A96E',
-                        color: carrito.length === 0 || guardando ? c.muted2 : '#0F1A09',
+                        background: carrito.length === 0 || guardando || esSocio === null ? c.card2 : '#C9A96E',
+                        color: carrito.length === 0 || guardando || esSocio === null ? c.muted2 : '#0F1A09',
                         border: 'none', borderRadius: '14px',
                         fontSize: '1.1rem', fontWeight: 700,
-                        cursor: carrito.length === 0 || guardando ? 'not-allowed' : 'pointer',
+                        cursor: carrito.length === 0 || guardando || esSocio === null ? 'not-allowed' : 'pointer',
                         transition: 'all 0.15s', letterSpacing: '-0.01em',
                     }}
                 >
                     {guardando ? 'Guardando...' : carrito.length === 0
                         ? 'Agregá productos'
-                        : `Confirmar · ${fmt(total)} · ${medioActual.label}`}
+                        : esSocio === null
+                            ? 'Indicá si es socio'
+                            : `Confirmar · ${fmt(total)} · ${medioActual.label}${socioSeleccionado ? ` · Socio #${socioSeleccionado.numero_socio.toString().padStart(4, '0')}` : ''}`}
                 </button>
             </div>
         </>
