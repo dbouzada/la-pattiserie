@@ -353,10 +353,7 @@ export default function Dashboard() {
                       <Tooltip
                         contentStyle={{ background: c.card2, border: `1px solid ${c.border}`, borderRadius: '8px', fontSize: '0.8rem' }}
                         labelStyle={{ color: c.muted }}
-                        formatter={(v: any, name: string) => {
-                          if (name === 'cantidad') return [`${v} tickets`, '']
-                          return [fmt(Number(v)), '']
-                        }}
+                        formatter={(v: any) => [fmt(Number(v)), 'tickets']}
                       />
                       <Bar dataKey="cantidad" fill="#C9A96E" radius={[4, 4, 0, 0]} opacity={0.8} />
                     </BarChart>
