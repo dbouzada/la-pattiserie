@@ -47,6 +47,12 @@ export default function Dashboard() {
         ventas_socios: (acc.ventas_socios || 0) + (d.ventas_socios || 0),
         ventas_con_dni: (acc.ventas_con_dni || 0) + (d.ventas_con_dni || 0),
         margen_estimado: (acc.margen_estimado || 0) + (d.margen_estimado || 0),
+        total_efectivo: (acc.total_efectivo || 0) + (d.total_efectivo || 0),
+        total_tarjeta: (acc.total_tarjeta || 0) + (d.total_tarjeta || 0),
+        total_transferencia: (acc.total_transferencia || 0) + (d.total_transferencia || 0),
+        total_mercadopago: (acc.total_mercadopago || 0) + (d.total_mercadopago || 0),
+        total_pedidosya: (acc.total_pedidosya || 0) + (d.total_pedidosya || 0),
+        total_rappi: (acc.total_rappi || 0) + (d.total_rappi || 0),
       }), {})
 
       if (agregado && agregado.tickets > 0) {
