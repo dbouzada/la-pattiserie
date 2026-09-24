@@ -311,6 +311,7 @@ export default function Socios() {
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, whiteSpace: 'nowrap' }}>N° Socio</th>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Nombre</th>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Contacto</th>
+                                <th className="socios-col-compras" style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500, whiteSpace: 'nowrap' }}>Cumpleaños</th>
                                 <th className="socios-col-compras" style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Compras</th>
                                 <th style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Total vendido</th>
                                 <th className="socios-col-obs" style={{ padding: '0.875rem 1rem', textAlign: 'left', fontSize: '0.72rem', color: c.muted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>Observaciones</th>
@@ -347,6 +348,11 @@ export default function Socios() {
                                             {s.telefono && <span style={{ color: c.muted, fontSize: '0.8rem' }}>{s.telefono}</span>}
                                             {!s.mail && !s.telefono && <span style={{ color: c.muted2 }}>—</span>}
                                         </div>
+                                    </td>
+                                    <td className="socios-col-compras" style={{ padding: '0.875rem 1rem', color: c.muted, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                        {s.fecha_nacimiento
+                                            ? new Date(s.fecha_nacimiento + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })
+                                            : '—'}
                                     </td>
                                     <td className="socios-col-compras" style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
                                         <span style={{ color: s.cantidad_compras > 0 ? '#60A5FA' : c.muted2, fontWeight: 500 }}>
