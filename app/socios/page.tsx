@@ -9,6 +9,7 @@ interface Socio {
     nombre: string
     mail: string | null
     telefono: string | null
+    fecha_nacimiento: string | null
     direccion: string | null
     observaciones: string | null
     activo: boolean
@@ -22,6 +23,7 @@ const socioVacio = {
     nombre: '',
     mail: '',
     telefono: '',
+    fecha_nacimiento: '',
     direccion: '',
     observaciones: '',
 }
@@ -110,6 +112,7 @@ export default function Socios() {
             nombre: s.nombre,
             mail: s.mail || '',
             telefono: s.telefono || '',
+            fecha_nacimiento: s.fecha_nacimiento || '',
             direccion: s.direccion || '',
             observaciones: s.observaciones || '',
         })
@@ -123,6 +126,7 @@ export default function Socios() {
             nombre: form.nombre,
             mail: form.mail || null,
             telefono: form.telefono || null,
+            fecha_nacimiento: form.fecha_nacimiento || null,
             direccion: form.direccion || null,
             observaciones: form.observaciones || null,
         }
@@ -420,6 +424,7 @@ export default function Socios() {
                                 { label: 'Nombre y apellido *', key: 'nombre', type: 'text', placeholder: 'Nombre completo' },
                                 { label: 'Mail', key: 'mail', type: 'email', placeholder: 'socio@email.com' },
                                 { label: 'Teléfono', key: 'telefono', type: 'tel', placeholder: '+54 9 11 1234-5678' },
+                                { label: 'Fecha de nacimiento', key: 'fecha_nacimiento', type: 'date', placeholder: '' },
                                 { label: 'Dirección', key: 'direccion', type: 'text', placeholder: 'Calle, número, ciudad' },
                             ].map(f => (
                                 <div key={f.key}>
