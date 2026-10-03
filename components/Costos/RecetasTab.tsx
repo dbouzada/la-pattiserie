@@ -271,7 +271,7 @@ export default function RecetasTab() {
                             <tr style={{ borderBottom: `1px solid ${c.border}` }}>
                                 <th style={{ ...th, textAlign: 'left' }}>Receta</th>
                                 <th style={{ ...th, textAlign: 'right' }}>Costo total</th>
-                                <th className="col-opt" style={{ ...th, textAlign: 'right' }}>Por porción</th>
+                                <th className="col-opt" style={{ ...th, textAlign: 'right' }}>Por unidad</th>
                                 <th className="col-opt" style={{ ...th, textAlign: 'right' }}>Sugerido</th>
                                 <th style={{ ...th, textAlign: 'right' }}>Venta</th>
                                 <th className="col-opt" style={{ ...th, textAlign: 'right' }}>Margen</th>
@@ -295,7 +295,7 @@ export default function RecetasTab() {
                                             <div style={{ color: c.muted2, fontSize: '0.75rem' }}>
                                                 {r.categoria} · {r.es_preparacion
                                                     ? `rinde ${Number(r.rendimiento_cantidad)} ${r.rendimiento_unidad}`
-                                                    : `${r.porciones} ${r.porciones === 1 ? 'porción' : 'porciones'}`}
+                                                    : `rinde ${r.porciones} ${r.porciones === 1 ? 'unidad' : 'unidades'}`}
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.875rem 1rem', textAlign: 'right', color: c.text }}>{k ? fmt(Number(k.costo_total)) : '—'}</td>
