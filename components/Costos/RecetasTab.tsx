@@ -111,10 +111,11 @@ export default function RecetasTab() {
     // Cálculo en vivo (misma fórmula que la vista costo_recetas)
     const materiaPrima = items.reduce((s, it) => s + num(it.cantidad) * infoItem(it).costoU, 0)
     const costoTotal = materiaPrima * (1 + num(form.merma_pct) / 100) + num(form.mano_obra) + num(form.packaging)
-    const precioSugerido = costoTotal * (1 + num(form.ganancia_pct) / 100)
-    const precioVenta = num(form.precio_venta)
-    const margenReal = precioVenta > 0 ? ((precioVenta - costoTotal) / precioVenta) * 100 : null
     const porciones = Math.max(1, Math.round(num(form.porciones)))
+    const costoUnidad = costoTotal / porciones
+    const precioSugerido = costoUnidad * (1 + num(form.ganancia_pct) / 100)
+    const precioVenta = num(form.precio_venta)
+    const margenReal = precioVenta > 0 ? ((precioVenta - costoUnidad) / precioVenta) * 100 : null
 
     const abrirNueva = () => {
         setForm(formVacio); setItems([]); setError(''); setModal({ id: null })
@@ -349,7 +350,7 @@ export default function RecetasTab() {
                                 </select>
                             </div>
                             <div>
-                                <label style={labelStyle}>Porciones</label>
+                                <label style={labelStyle}>Unidades que rinde</label>
                                 <input style={inputStyle} inputMode="numeric" value={form.porciones}
                                     onChange={e => setForm({ ...form, porciones: e.target.value })} />
                             </div>
@@ -488,7 +489,7 @@ export default function RecetasTab() {
                             {[
                                 ['Materia prima', fmt(materiaPrima)],
                                 ['Costo total', fmt(costoTotal)],
-                                ...(porciones > 1 ? [['Costo por porción', fmt(costoTotal / porciones)]] : []),
+                                ...(porciones > 1 ? [['Costo por unidad', fmt(costoUnidad)]] : []),
                             ].map(([k, v]) => (
                                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: c.muted }}>{k}</span>
@@ -498,7 +499,7 @@ export default function RecetasTab() {
                             {!form.es_preparacion && (
                                 <>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: c.muted }}>Precio sugerido</span>
+                                        <span style={{ color: c.muted }}>Precio sugerido por unidad</span>
                                         <span style={{ color: '#C9A96E', fontWeight: 600 }}>{fmt(precioSugerido)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
