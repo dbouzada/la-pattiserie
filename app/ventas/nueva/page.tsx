@@ -52,6 +52,7 @@ export default function NuevaVenta() {
     const [socioSeleccionado, setSocioSeleccionado] = useState<Socio | null>(null)
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
+    const [egresos, setEgresos] = useState<{ concepto: string; monto: number; medio: string }[]>([])
 
     const c = {
         card: tema === 'oscuro' ? '#162210' : '#F7F3EC',
@@ -119,6 +120,8 @@ export default function NuevaVenta() {
         ? Math.round(subtotalBruto * (descuentoValor / 100))
         : descuentoValor
     const total = Math.max(0, subtotalBruto - montoDescuento)
+    const totalEgresos = egresos.reduce((a, e) => a + (e.monto || 0), 0)
+    const neto = total - totalEgresos
 
     const fmt = (n: number) =>
         new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
@@ -152,6 +155,12 @@ export default function NuevaVenta() {
                 subtotal: i.subtotal,
             }))
         )
+        const egresosValidos = egresos.filter(e => e.monto > 0)
+        if (egresosValidos.length > 0) {
+            await supabase.from('venta_egresos').insert(
+                egresosValidos.map(e => ({ venta_id: venta.id, concepto: e.concepto, monto: e.monto, medio_pago: e.medio }))
+            )
+        }
 
         for (const item of carrito) {
             await supabase.rpc('decrementar_stock', {
@@ -163,6 +172,7 @@ export default function NuevaVenta() {
         setCarrito([])
         setMedio('efectivo')
         setDescuentoValor(0)
+        setEgresos([])
         setDni('')
         setEsSocio(null)
         setSocioSeleccionado(null)
@@ -372,6 +382,41 @@ export default function NuevaVenta() {
                                 <span style={{ fontSize: '0.8rem', color: '#F87171', whiteSpace: 'nowrap' }}>
                                     −{fmt(montoDescuento)}
                                 </span>
+                            )}
+                        </div>
+
+                        {/* Egresos */}
+                        <div style={{ padding: '0.875rem 1rem', borderTop: `1px solid ${c.border}`, background: c.card2, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {egresos.map((e, idx) => (
+                                <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <select value={e.concepto}
+                                        onChange={ev => setEgresos(egresos.map((x, i) => i === idx ? { ...x, concepto: ev.target.value } : x))}
+                                        style={{ background: 'transparent', border: `1px solid ${c.border}`, borderRadius: '8px', padding: '0.375rem 0.5rem', color: c.text, fontSize: '0.8rem' }}>
+                                        {['Cadete', 'Comisión', 'Otro'].map(o => <option key={o}>{o}</option>)}
+                                    </select>
+                                    <select value={e.medio}
+                                        onChange={ev => setEgresos(egresos.map((x, i) => i === idx ? { ...x, medio: ev.target.value } : x))}
+                                        style={{ background: 'transparent', border: `1px solid ${c.border}`, borderRadius: '8px', padding: '0.375rem 0.5rem', color: c.text, fontSize: '0.8rem' }}>
+                                        <option value="efectivo">Efectivo</option>
+                                        <option value="transferencia">Transferencia</option>
+                                        <option value="mercadopago">Mercado Pago</option>
+                                    </select>
+                                    <input type="number" min={0} placeholder="0" value={e.monto || ''}
+                                        onChange={ev => setEgresos(egresos.map((x, i) => i === idx ? { ...x, monto: Number(ev.target.value) } : x))}
+                                        style={{ flex: 1, minWidth: '60px', background: 'transparent', border: `1px solid ${c.border}`, borderRadius: '8px', padding: '0.375rem 0.75rem', color: '#F87171', fontSize: '0.875rem', outline: 'none', textAlign: 'right' }} />
+                                    <button onClick={() => setEgresos(egresos.filter((_, i) => i !== idx))} aria-label="Quitar egreso"
+                                        style={{ background: 'transparent', border: 'none', color: '#F87171', cursor: 'pointer' }}>✕</button>
+                                </div>
+                            ))}
+                            <button onClick={() => setEgresos([...egresos, { concepto: 'Cadete', monto: 0, medio: 'efectivo' }])}
+                                style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#C9A96E', fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}>
+                                + Agregar egreso (cadete, comisión…)
+                            </button>
+                            {totalEgresos > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                                    <span style={{ color: c.muted }}>Neto para el local</span>
+                                    <span style={{ color: c.text, fontWeight: 600 }}>{fmt(neto)}</span>
+                                </div>
                             )}
                         </div>
 

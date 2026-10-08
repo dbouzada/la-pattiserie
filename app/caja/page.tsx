@@ -8,6 +8,7 @@ import jsPDF from 'jspdf'
 export default function Caja() {
     const { tema } = useTema()
     const [loading, setLoading] = useState(true)
+    const [egresosDia, setEgresosDia] = useState<{ concepto: string; monto: number; medio_pago: string }[]>([])
     const [guardando, setGuardando] = useState(false)
     const [exito, setExito] = useState(false)
     const [notas, setNotas] = useState('')
@@ -34,6 +35,11 @@ export default function Caja() {
 
         const { data: arqueo } = await supabase
             .from('arqueo_caja').select('notas').eq('fecha', hoy).single()
+        const { data: egr } = await supabase
+            .from('venta_egresos')
+            .select('concepto, monto, medio_pago, ventas!inner(fecha, anulada)')
+            .eq('ventas.fecha', hoy).eq('ventas.anulada', false)
+        setEgresosDia(egr || [])
 
         const t = { efectivo: 0, tarjeta: 0, transferencia: 0, mercadopago: 0, pedidosya: 0 }
         ventas?.forEach(v => {
@@ -51,7 +57,8 @@ export default function Caja() {
         new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 
     const total = Object.values(totales).reduce((a, b) => a + b, 0)
-
+    const egresosEfectivo = egresosDia.filter(e => e.medio_pago === 'efectivo').reduce((a, e) => a + Number(e.monto), 0)
+    const egresosTotal = egresosDia.reduce((a, e) => a + Number(e.monto), 0)
     const medios = [
         { label: 'Efectivo', value: totales.efectivo, color: '#C9A96E' },
         { label: 'Tarjeta', value: totales.tarjeta, color: '#60A5FA' },
@@ -205,6 +212,22 @@ export default function Caja() {
                 ))}
             </div>
 
+            {egresosTotal > 0 && (
+                <div style={{ border: `1px solid ${c.border}`, borderRadius: '16px', padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.88rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: c.muted }}>Egresos del día (cadetes, etc.)</span>
+                        <span style={{ color: '#F87171' }}>−{fmt(egresosTotal)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: c.muted }}>Efectivo que debería haber en caja</span>
+                        <span style={{ color: '#C9A96E', fontWeight: 600 }}>{fmt(totales.efectivo - egresosEfectivo)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: c.muted }}>Neto del día</span>
+                        <span style={{ color: c.text, fontWeight: 600 }}>{fmt(total - egresosTotal)}</span>
+                    </div>
+                </div>
+            )}
             {/* Barra visual */}
             {total > 0 && (
                 <div style={{ height: '6px', borderRadius: '6px', overflow: 'hidden', display: 'flex', gap: '2px' }}>
